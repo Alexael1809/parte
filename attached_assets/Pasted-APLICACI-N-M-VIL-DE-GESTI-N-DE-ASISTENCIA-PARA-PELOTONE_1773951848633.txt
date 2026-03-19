@@ -1,0 +1,363 @@
+APLICACIÓN MÓVIL DE GESTIÓN DE ASISTENCIA PARA PELOTONES (REPLIT + SUPABASE)
+
+📱 Descripción General
+
+Aplicación móvil nativa para Android (desarrollada en Flutter o React Native para facilitar su creación en Replit) que permite la gestión de asistencia de aproximadamente 790 personas organizadas en pelotones de tamaño variable (9 a 50 personas). La aplicación debe funcionar sin conexión a internet (offline-first) y sincronizar automáticamente con Supabase al restablecer la conexión.
+
+El desarrollo se realizará íntegramente en Replit, con el código fuente alojado en un repositorio Git, y utilizando Supabase como backend (autenticación, base de datos PostgreSQL, almacenamiento y funciones en tiempo real).
+
+🛠️ Tecnologías Propuestas
+
+· Frontend Móvil: Flutter (recomendado para compilar a APK nativo con buena experiencia offline) o React Native (Expo).
+· Backend y Base de Datos: Supabase (PostgreSQL, Autenticación, Row Level Security, Realtime).
+· Almacenamiento Local: SQLite (con sqflite en Flutter o react-native-sqlite-storage) para modo offline.
+· Sincronización: Mecanismo propio con lógica de conflictos (última modificación gana).
+· Autenticación: Supabase Auth con JWT, más biometría (huella digital) en el dispositivo.
+· Notificaciones Push: Firebase Cloud Messaging (FCM) integrado con Supabase.
+
+👥 Usuarios y Roles
+
+Usuario Estándar (Recolector)
+
+· Usa la app en su celular.
+· Registra asistencia del pelotón asignado por el superusuario.
+· Puede trabajar sin conexión a internet.
+· Ve únicamente su pelotón asignado.
+· Puede acceder al plan de búsqueda de cualquier persona de su pelotón (ver, editar y compartir).
+
+Superusuario (Administrador)
+
+· Control total del sistema.
+· Gestiona usuarios, procesos, pelotones y personas.
+· Visualiza y exporta reportes consolidados.
+· Ve el total de TODOS los pelotones (estadísticas globales).
+· Único con permisos para editar asistencias pasadas.
+· Puede acceder al plan de búsqueda de cualquier persona de cualquier pelotón.
+
+🏗️ Estructura Organizacional
+
+Procesos
+
+· Máximo 3 procesos activos simultáneamente.
+· Formato ejemplo: "Proceso 1-2025", "Proceso 2-2025", "Proceso 1-2026".
+· Posibilidad de archivar procesos anteriores.
+
+PNFs (Programas Nacionales de Formación)
+
+· Fijos iniciales: Criminalística, Investigación Penal, Servicio Policial, Servicio Ciencias de Fuego.
+· Posibilidad de editar nombres a futuro (solo superusuario).
+
+Pelotones
+
+· Tamaño variable (9 a 50 personas).
+· Asignados a un Proceso y un PNF específico.
+· Ejemplo: Pelotón "A" del Proceso "1-2025" del PNF "Investigación Penal".
+
+Personas
+
+· Datos básicos: nombres, apellidos, cédula de identidad, sexo, pelotón asignado.
+· Plan de búsqueda: 3 números de teléfono, dirección y lugar de origen (lugar de residencia).
+· Historial de asistencia vinculado a la persona (aunque cambie de pelotón).
+
+⚙️ Funcionalidades Detalladas
+
+1. MÓDULO DE AUTENTICACIÓN
+
+· Login único con email/usuario y contraseña.
+· Recuperación de contraseña por email (usando Supabase Auth).
+· Sesión persistente offline (guarda credenciales de forma segura con EncryptedSharedPreferences en Android o Flutter secure storage).
+· Biometría (huella digital) para acceso rápido.
+· Redirección según rol (usuario estándar o superusuario).
+
+2. MÓDULO DE ADMINISTRACIÓN (Solo Superusuario)
+
+Gestión de Usuarios
+
+· CRUD completo de usuarios estándar.
+· Asignación de un pelotón específico a cada usuario.
+· Activación/desactivación de cuentas.
+
+Gestión de Procesos
+
+· Crear, editar y archivar procesos.
+· Visualizar procesos activos.
+
+Gestión de PNFs
+
+· Mantener los 4 PNFs definidos.
+· Posibilidad de editar nombres (a futuro).
+
+Gestión de Pelotones
+
+· Crear y editar pelotones.
+· Asignar a Proceso y PNF.
+· Visualizar tamaño y personas del pelotón.
+
+Gestión de Personas
+
+· Registro individual con:
+  · Nombres, Apellidos, Cédula de Identidad, Sexo (Femenino / Masculino)
+  · Pelotón asignado
+  · Plan de búsqueda: 3 teléfonos, dirección, lugar de origen
+· Importación masiva desde Excel/CSV:
+  · Subir archivo desde el dispositivo.
+  · Mapeo inteligente de columnas (el usuario relaciona columnas del Excel con campos de la base de datos).
+  · Validación de datos importados.
+  · Vista previa antes de guardar.
+· Edición de personas:
+  · Modificar nombres, apellidos, CI, sexo.
+  · Cambiar de pelotón (el historial de asistencia se mantiene vinculado a la persona).
+  · Editar plan de búsqueda.
+
+3. MÓDULO DE TOMA DE ASISTENCIA (Núcleo de la App)
+
+Configuración Offline
+
+· Base de datos local: SQLite.
+· Capacidad: Guardar hasta 1 mes de asistencias completas.
+· Datos almacenados offline: Todas las personas del pelotón asignado con nombres, apellidos, sexo, cédula y plan de búsqueda.
+· Sincronización automática en segundo plano al recuperar conexión.
+· Indicador visual de estado de sincronización (icono de nube, última sincronización).
+
+Pantalla de Asistencia (Usuario Estándar)
+
+· Interfaz nativa optimizada para móvil:
+  · Gestos táctiles (swipe para cambiar de persona).
+  · Botones grandes y fáciles de pulsar.
+  · Desplazamiento suave con virtualización de listas.
+  · Modo oscuro/claro según configuración del sistema.
+
+Registro de Asistencia por Persona
+
+Para cada persona se debe poder seleccionar:
+
+Estado Comportamiento Color
+Inasistente Estado por defecto 🔴 Rojo
+Presente Marca asistencia normal 🟢 Verde
+Comisión Opción con campo de texto libre para motivo 🔵 Azul
+Reposo Opción con campo de texto libre para motivo 🟠 Naranja
+
+Visualización en Lista
+
+Cada persona debe mostrar:
+
+· Foto de perfil o iniciales con círculo de color.
+· Nombre completo.
+· Inicial del apellido (ej. "María G.").
+· Icono de sexo (♀/♂).
+· Indicador de estado actual con color de fondo suave.
+
+Comportamiento Inteligente
+
+· Al abrir la lista de un día específico, carga el último estado guardado para ESE mismo día (no el del día anterior).
+· Si es un día nuevo, todos aparecen como "Inasistente" por defecto.
+· Selector de fecha tipo calendario nativo.
+· Posibilidad de copiar asistencia del día anterior (opción "Todos igual que ayer").
+
+Guardado y Sincronización
+
+· Botón flotante grande para guardar.
+· Confirmación visual con animación y feedback háptico.
+· Indicador de pendiente de sincronización (icono de nube).
+· Sincronización automática al recuperar conexión.
+· Notificación push al superusuario cuando un usuario completa la sincronización del día.
+
+4. MÓDULO DE PLAN DE BÚSQUEDA (Nuevo)
+
+Acceso
+
+· En la lista de asistencia (tanto para usuario estándar como superusuario), al presionar sobre una persona se abre una ventana modal o pantalla con el título "Plan de Búsqueda".
+
+Contenido de la Ventana
+
+· Nombres y apellidos (grande, destacado).
+· Cédula de Identidad.
+· Estado actual (Presente, Inasistente, Comisión, Reposo) con su color correspondiente.
+· Teléfonos (3 campos): mostrados como "Teléfono 1: +58 XXX XXX XXXX", etc.
+· Dirección: calle, ciudad, etc.
+· Lugar de origen (lugar de residencia, puede ser igual a la dirección o diferente).
+· Botones:
+  · Editar: permite modificar teléfonos, dirección y lugar de origen.
+  · Compartir: abre las opciones nativas de compartir (WhatsApp, email, etc.) con un texto formateado que incluye toda la información del plan de búsqueda.
+  · Cerrar.
+
+Permisos
+
+· Usuario estándar: puede ver, editar y compartir el plan de búsqueda de las personas de su pelotón.
+· Superusuario: puede ver, editar y compartir el plan de búsqueda de cualquier persona (desde la lista de personas o desde el drill down de inasistentes).
+
+Edición
+
+· Al tocar "Editar", se habilitan campos para modificar los 3 teléfonos, la dirección y el lugar de origen.
+· Validación básica (números de teléfono, campos no vacíos).
+· Guardado local y sincronización con Supabase.
+
+Compartición
+
+· El texto compartido debe tener un formato legible, por ejemplo:
+  ```
+  PLAN DE BÚSQUEDA
+  Nombre: María González
+  CI: 12.345.678
+  Estado: Inasistente
+  Teléfonos: 0412-1234567, 0416-7654321, 0424-9876543
+  Dirección: Av. Principal, Casa N° 10, Caracas
+  Lugar de origen: Barquisimeto, Estado Lara
+  ```
+· Se puede compartir como texto plano o generar una imagen/PDF (opcional).
+
+5. MÓDULO DE VISUALIZACIÓN Y REPORTES (Superusuario)
+
+Filtros Avanzados
+
+· Selectores tipo dropdown nativos.
+· Filtros por Proceso, PNF, Pelotón.
+· Calendario para fecha específica.
+· Selector de rango de fechas (día, semana, mes).
+· Toggle para sexo (F/M/Ambos).
+· Filtro por Estado (Presente/Inasistente/Comisión/Reposo).
+
+Dashboard Principal con Drill Down
+
+El dashboard del superusuario debe mostrar tarjetas interactivas para cada pelotón:
+
+```
+┌─────────────────────────────────────┐
+│ 📋 PELOTÓN A                        │
+│ Criminalística - Proceso 1-2025     │
+├─────────────────────────────────────┤
+│ 👥 Total: 45 personas                │
+│ ────────────────────────────────── │
+│ ✅ Presentes: 30  (H:20 | M:10)     │
+│ ❌ Inasistentes: 8  (H:5 | M:3)  🔍  │
+│ 🔵 Comisiones: 4   (H:3 | M:1)      │
+│ 🟠 Reposos: 3     (H:2 | M:1)       │
+└─────────────────────────────────────┘
+```
+
+Drill Down: Al tocar el ícono 🔍 en "Inasistentes", se abre una nueva pantalla con la lista detallada de personas inasistentes de ese pelotón, mostrando nombre, CI, sexo, y un botón para ver el plan de búsqueda de cada uno (al presionar la persona).
+
+Vista Global con Totales por Pelotón
+
+Pantalla con tabla interactiva que resume todos los pelotones.
+
+Exportación de Inasistentes
+
+· Botón flotante "📤 EXPORTAR TODOS LOS INASISTENTES" que genera un archivo CSV con todos los inasistentes (filtrados por fecha y otros criterios) y permite compartirlo por WhatsApp/email o guardarlo.
+· Desde cada lista de inasistentes, botón "COMPARTIR" para exportar solo ese pelotón.
+
+Edición y Corrección (solo superusuario)
+
+· Posibilidad de modificar asistencias pasadas.
+· Historial de cambios visible.
+· Confirmación antes de modificar.
+
+🗄️ Base de Datos y Sincronización (Supabase)
+
+Base de Datos Local (Offline)
+
+· Motor: SQLite (sqflite en Flutter).
+· Tablas locales: réplica de las tablas necesarias de Supabase (usuarios, personas, asistencias, pelotones, procesos, pnfs, planes_busqueda).
+· Sincronización bidireccional:
+  · Al abrir la app con internet: descarga últimos datos (personas, pelotones, etc.).
+  · Al tomar asistencia offline: guarda local con flag sync_status = 'pending'.
+  · Al recuperar internet: sincroniza en segundo plano (sube asistencias pendientes y baja actualizaciones).
+  · Resolución de conflictos: última modificación gana (basada en timestamp).
+
+Base de Datos Remota (Supabase)
+
+· Tablas principales:
+  · usuarios: id, email, rol, peloton_id (si es estándar), activo, etc.
+  · procesos: id, nombre, activo, fecha_archivado (nullable).
+  · pnfs: id, nombre.
+  · pelotones: id, nombre, proceso_id, pnf_id.
+  · personas: id, nombres, apellidos, ci, sexo, peloton_id, created_at, updated_at.
+  · planes_busqueda: id, persona_id, telefono1, telefono2, telefono3, direccion, lugar_origen.
+  · asistencias: id, persona_id, fecha, estado, motivo (nullable), usuario_id, created_at, updated_at.
+  · historial_cambios: id, tabla, registro_id, usuario_id, cambio, timestamp.
+· Autenticación: Supabase Auth (email/contraseña).
+· Seguridad: Row Level Security (RLS) para que cada usuario vea solo sus datos (su pelotón) y el superusuario todo.
+· Realtime: Opcional para actualizaciones en vivo del dashboard.
+
+📱 Interfaz de Usuario - Diseño Nativo
+
+Para Usuario Estándar
+
+· Pantalla de Login con opción de biometría.
+· Home:
+  · Tarjeta grande con pelotón asignado.
+  · Fecha actual destacada.
+  · Botón grande "TOMAR ASISTENCIA".
+  · Indicador de última sincronización y estado de conexión.
+· Pantalla de Asistencia:
+  · Header con selector de fecha.
+  · Lista con búsqueda rápida (lupa).
+  · Cada persona: avatar con inicial, nombre, indicador de sexo, estado actual.
+  · 4 botones circulares de colores para cambiar estado.
+  · Al presionar la tarjeta de la persona, abre Plan de Búsqueda.
+  · Botón flotante "GUARDAR".
+· Confirmación: animación de éxito, feedback háptico.
+
+Para Superusuario
+
+· Menú inferior con 5 pestañas:
+  1. 📊 Dashboard (resumen global)
+  2. 📋 Pelotones (lista con detalles)
+  3. 👥 Personas (gestión y búsqueda)
+  4. ⚙️ Administración (usuarios, procesos, PNFs)
+  5. 📤 Exportar (acceso rápido a exportaciones)
+· Dashboard: scroll vertical con tarjetas de totales, gráficos circulares, pull-to-refresh.
+· Modales nativos, con opciones de compartir.
+
+📲 Características Nativas Específicas (Android)
+
+· Soporte para versiones 8.0+.
+· Notificaciones push (FCM) para alertar al superusuario sobre sincronizaciones completadas.
+· Widget de acceso rápido (opcional).
+· Compartir archivos directamente a WhatsApp/email.
+· Almacenamiento seguro de credenciales (EncryptedSharedPreferences o Flutter secure storage).
+· Biometría (huella digital).
+
+🔒 Seguridad
+
+· Autenticación con Supabase Auth (JWT).
+· Almacenamiento local cifrado.
+· Row Level Security en Supabase para garantizar que cada usuario solo acceda a sus datos.
+· Auditoría de cambios (tabla historial_cambios).
+· Comunicaciones mediante HTTPS.
+
+📊 Ejemplo de Flujo Completo
+
+1. Usuario estándar abre la app sin internet.
+2. Ve su pelotón con datos cacheados.
+3. Toma asistencia del día (todos inasistentes por defecto, va marcando presentes).
+4. Presiona una persona para ver su plan de búsqueda y edita un teléfono.
+5. Guarda la asistencia localmente (feedback inmediato).
+6. Al recuperar internet, sincroniza automáticamente (asistencias y cambios en plan de búsqueda).
+7. Superusuario recibe notificación push.
+8. Abre la app, ve el dashboard con totales actualizados.
+9. Toca el número de inasistentes del Pelotón A.
+10. En la lista de inasistentes, presiona una persona para ver su plan de búsqueda y comparte la información por WhatsApp.
+11. Toca "EXPORTAR TODOS LOS INASISTENTES" y comparte el archivo CSV.
+
+🚀 Entregables Esperados
+
+1. Aplicación móvil nativa para Android (APK generado desde Replit).
+2. Base de datos en Supabase configurada con todas las tablas, RLS y autenticación.
+3. Documentación técnica (estructura del proyecto, configuración de Supabase, variables de entorno).
+4. Manual de usuario con capturas de pantalla.
+5. Manual de administrador.
+6. Video demostrativo de todas las funcionalidades (incluyendo plan de búsqueda, offline, sincronización).
+7. Guía de instalación y configuración para desplegar en Replit y generar APK.
+
+✅ Criterios de Éxito
+
+1. Offline-first: 100% funcional sin internet (carga de datos, toma de asistencia, edición de plan de búsqueda).
+2. Sincronización automática: Sin intervención del usuario, con resolución de conflictos.
+3. Experiencia nativa: Interfaz fluida, gestos, animaciones, feedback háptico.
+4. Rendimiento: Listas de 50+ personas sin lag.
+5. Batería: Consumo optimizado en segundo plano.
+6. Seguridad: Datos protegidos local y remotamente (RLS, cifrado).
+7. Drill Down funcional: Cada número de inasistentes es táctil.
+8. Exportación: Archivos compatibles con Excel (CSV).
+9. Plan de búsqueda: Accesible desde lista de asistencia y lista de inasistentes; edición y compartición funcionales.

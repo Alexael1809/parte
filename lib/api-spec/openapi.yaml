@@ -1,22 +1,34 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Attendance Management API for Police Training Units
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: procesos
+    description: Process management
+  - name: pnfs
+    description: PNF management
+  - name: pelotones
+    description: Squad management
+  - name: personas
+    description: People management
+  - name: asistencias
+    description: Attendance operations
+  - name: usuarios
+    description: User management
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,605 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /procesos:
+    get:
+      operationId: getProcesos
+      tags: [procesos]
+      summary: List processes
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of processes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Proceso"
+    post:
+      operationId: createProceso
+      tags: [procesos]
+      summary: Create process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProcesoRequest"
+      responses:
+        "201":
+          description: Created process
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proceso"
+
+  /procesos/{id}:
+    put:
+      operationId: updateProceso
+      tags: [procesos]
+      summary: Update process
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProcesoRequest"
+      responses:
+        "200":
+          description: Updated process
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proceso"
+    delete:
+      operationId: deleteProceso
+      tags: [procesos]
+      summary: Archive/delete process
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /pnfs:
+    get:
+      operationId: getPnfs
+      tags: [pnfs]
+      summary: List PNFs
+      responses:
+        "200":
+          description: List of PNFs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pnf"
+    post:
+      operationId: createPnf
+      tags: [pnfs]
+      summary: Create PNF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePnfRequest"
+      responses:
+        "201":
+          description: Created PNF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pnf"
+
+  /pnfs/{id}:
+    put:
+      operationId: updatePnf
+      tags: [pnfs]
+      summary: Update PNF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePnfRequest"
+      responses:
+        "200":
+          description: Updated PNF
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pnf"
+
+  /pelotones:
+    get:
+      operationId: getPelotones
+      tags: [pelotones]
+      summary: List squads
+      parameters:
+        - name: procesoId
+          in: query
+          schema:
+            type: integer
+        - name: pnfId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of squads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Peloton"
+    post:
+      operationId: createPeloton
+      tags: [pelotones]
+      summary: Create squad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePelotonRequest"
+      responses:
+        "201":
+          description: Created squad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Peloton"
+
+  /pelotones/{id}:
+    put:
+      operationId: updatePeloton
+      tags: [pelotones]
+      summary: Update squad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePelotonRequest"
+      responses:
+        "200":
+          description: Updated squad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Peloton"
+    delete:
+      operationId: deletePeloton
+      tags: [pelotones]
+      summary: Delete squad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /personas:
+    get:
+      operationId: getPersonas
+      tags: [personas]
+      summary: List people
+      parameters:
+        - name: pelotonId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of people
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Persona"
+    post:
+      operationId: createPersona
+      tags: [personas]
+      summary: Create person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePersonaRequest"
+      responses:
+        "201":
+          description: Created person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+
+  /personas/{id}:
+    get:
+      operationId: getPersona
+      tags: [personas]
+      summary: Get person by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Person details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+    put:
+      operationId: updatePersona
+      tags: [personas]
+      summary: Update person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePersonaRequest"
+      responses:
+        "200":
+          description: Updated person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+    delete:
+      operationId: deletePersona
+      tags: [personas]
+      summary: Delete person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /personas/{id}/plan-busqueda:
+    get:
+      operationId: getPlanBusqueda
+      tags: [personas]
+      summary: Get search plan for person
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Search plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanBusqueda"
+    put:
+      operationId: updatePlanBusqueda
+      tags: [personas]
+      summary: Update search plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlanBusquedaRequest"
+      responses:
+        "200":
+          description: Updated search plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanBusqueda"
+
+  /asistencias:
+    get:
+      operationId: getAsistencias
+      tags: [asistencias]
+      summary: Get attendance records
+      parameters:
+        - name: pelotonId
+          in: query
+          schema:
+            type: integer
+        - name: fecha
+          in: query
+          schema:
+            type: string
+        - name: procesoId
+          in: query
+          schema:
+            type: integer
+        - name: pnfId
+          in: query
+          schema:
+            type: integer
+        - name: estado
+          in: query
+          schema:
+            type: string
+        - name: sexo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asistencia"
+    post:
+      operationId: saveAsistencias
+      tags: [asistencias]
+      summary: Save attendance for a squad and date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveAsistenciasRequest"
+      responses:
+        "200":
+          description: Saved attendance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /asistencias/dashboard:
+    get:
+      operationId: getDashboard
+      tags: [asistencias]
+      summary: Get dashboard stats
+      parameters:
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: procesoId
+          in: query
+          schema:
+            type: integer
+        - name: pnfId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PelotonStats"
+
+  /asistencias/inasistentes:
+    get:
+      operationId: getInasistentes
+      tags: [asistencias]
+      summary: Get all absentees for export
+      parameters:
+        - name: fecha
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: procesoId
+          in: query
+          schema:
+            type: integer
+        - name: pnfId
+          in: query
+          schema:
+            type: integer
+        - name: pelotonId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of absentees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InasistentePerson"
+
+  /usuarios:
+    get:
+      operationId: getUsuarios
+      tags: [usuarios]
+      summary: List users (admin only)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+    post:
+      operationId: createUsuario
+      tags: [usuarios]
+      summary: Create user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUsuarioRequest"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+
+  /usuarios/{id}:
+    put:
+      operationId: updateUsuario
+      tags: [usuarios]
+      summary: Update user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUsuarioRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+    delete:
+      operationId: deleteUsuario
+      tags: [usuarios]
+      summary: Delete user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +642,418 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        usuario:
+          $ref: "#/components/schemas/Usuario"
+      required: [token, usuario]
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        nombre:
+          type: string
+        rol:
+          type: string
+          enum: [superusuario, estandar]
+        pelotonId:
+          type: integer
+          nullable: true
+        pelotonNombre:
+          type: string
+          nullable: true
+        activo:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, email, nombre, rol, activo, createdAt]
+
+    Proceso:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        activo:
+          type: boolean
+        fechaArchivado:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, nombre, activo, createdAt]
+
+    CreateProcesoRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+      required: [nombre]
+
+    UpdateProcesoRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+        activo:
+          type: boolean
+
+    Pnf:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        createdAt:
+          type: string
+      required: [id, nombre, createdAt]
+
+    CreatePnfRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+      required: [nombre]
+
+    UpdatePnfRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+
+    Peloton:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        procesoId:
+          type: integer
+        procesoNombre:
+          type: string
+        pnfId:
+          type: integer
+        pnfNombre:
+          type: string
+        totalPersonas:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, nombre, procesoId, procesoNombre, pnfId, pnfNombre, totalPersonas, createdAt]
+
+    CreatePelotonRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+        procesoId:
+          type: integer
+        pnfId:
+          type: integer
+      required: [nombre, procesoId, pnfId]
+
+    UpdatePelotonRequest:
+      type: object
+      properties:
+        nombre:
+          type: string
+        procesoId:
+          type: integer
+        pnfId:
+          type: integer
+
+    Persona:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        ci:
+          type: string
+        sexo:
+          type: string
+          enum: [M, F]
+        pelotonId:
+          type: integer
+        pelotonNombre:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, nombres, apellidos, ci, sexo, pelotonId, pelotonNombre, createdAt, updatedAt]
+
+    CreatePersonaRequest:
+      type: object
+      properties:
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        ci:
+          type: string
+        sexo:
+          type: string
+          enum: [M, F]
+        pelotonId:
+          type: integer
+      required: [nombres, apellidos, ci, sexo, pelotonId]
+
+    UpdatePersonaRequest:
+      type: object
+      properties:
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        ci:
+          type: string
+        sexo:
+          type: string
+          enum: [M, F]
+        pelotonId:
+          type: integer
+
+    PlanBusqueda:
+      type: object
+      properties:
+        id:
+          type: integer
+        personaId:
+          type: integer
+        telefono1:
+          type: string
+          nullable: true
+        telefono2:
+          type: string
+          nullable: true
+        telefono3:
+          type: string
+          nullable: true
+        direccion:
+          type: string
+          nullable: true
+        lugarOrigen:
+          type: string
+          nullable: true
+      required: [id, personaId]
+
+    UpdatePlanBusquedaRequest:
+      type: object
+      properties:
+        telefono1:
+          type: string
+          nullable: true
+        telefono2:
+          type: string
+          nullable: true
+        telefono3:
+          type: string
+          nullable: true
+        direccion:
+          type: string
+          nullable: true
+        lugarOrigen:
+          type: string
+          nullable: true
+
+    Asistencia:
+      type: object
+      properties:
+        id:
+          type: integer
+        personaId:
+          type: integer
+        personaNombres:
+          type: string
+        personaApellidos:
+          type: string
+        personaCi:
+          type: string
+        personaSexo:
+          type: string
+        pelotonId:
+          type: integer
+        fecha:
+          type: string
+        estado:
+          type: string
+          enum: [inasistente, presente, comision, reposo]
+        motivo:
+          type: string
+          nullable: true
+        usuarioId:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, personaId, personaNombres, personaApellidos, personaCi, personaSexo, pelotonId, fecha, estado, usuarioId, createdAt, updatedAt]
+
+    AsistenciaRecord:
+      type: object
+      properties:
+        personaId:
+          type: integer
+        estado:
+          type: string
+          enum: [inasistente, presente, comision, reposo]
+        motivo:
+          type: string
+          nullable: true
+      required: [personaId, estado]
+
+    SaveAsistenciasRequest:
+      type: object
+      properties:
+        pelotonId:
+          type: integer
+        fecha:
+          type: string
+        registros:
+          type: array
+          items:
+            $ref: "#/components/schemas/AsistenciaRecord"
+      required: [pelotonId, fecha, registros]
+
+    PelotonStats:
+      type: object
+      properties:
+        pelotonId:
+          type: integer
+        pelotonNombre:
+          type: string
+        pnfNombre:
+          type: string
+        procesoNombre:
+          type: string
+        total:
+          type: integer
+        presentes:
+          type: integer
+        presentesH:
+          type: integer
+        presentesM:
+          type: integer
+        inasistentes:
+          type: integer
+        inasistentesH:
+          type: integer
+        inasistentesM:
+          type: integer
+        comisiones:
+          type: integer
+        comisionesH:
+          type: integer
+        comisionesM:
+          type: integer
+        reposos:
+          type: integer
+        reposesH:
+          type: integer
+        reposesM:
+          type: integer
+      required: [pelotonId, pelotonNombre, pnfNombre, procesoNombre, total, presentes, presentesH, presentesM, inasistentes, inasistentesH, inasistentesM, comisiones, comisionesH, comisionesM, reposos, reposesH, reposesM]
+
+    InasistentePerson:
+      type: object
+      properties:
+        personaId:
+          type: integer
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        ci:
+          type: string
+        sexo:
+          type: string
+        pelotonNombre:
+          type: string
+        pnfNombre:
+          type: string
+        procesoNombre:
+          type: string
+        estado:
+          type: string
+        motivo:
+          type: string
+          nullable: true
+      required: [personaId, nombres, apellidos, ci, sexo, pelotonNombre, pnfNombre, procesoNombre, estado]
+
+    CreateUsuarioRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        nombre:
+          type: string
+        password:
+          type: string
+        rol:
+          type: string
+          enum: [superusuario, estandar]
+        pelotonId:
+          type: integer
+          nullable: true
+      required: [email, nombre, password, rol]
+
+    UpdateUsuarioRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        nombre:
+          type: string
+        password:
+          type: string
+        rol:
+          type: string
+          enum: [superusuario, estandar]
+        pelotonId:
+          type: integer
+          nullable: true
+        activo:
+          type: boolean
