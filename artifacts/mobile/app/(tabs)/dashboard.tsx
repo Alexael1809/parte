@@ -72,6 +72,8 @@ export default function DashboardScreen() {
   const totalGlobal = stats?.reduce((acc, s) => acc + s.total, 0) ?? 0;
   const totalPresentes = stats?.reduce((acc, s) => acc + s.presentes, 0) ?? 0;
   const totalAusentes = stats?.reduce((acc, s) => acc + s.ausentes, 0) ?? 0;
+  const totalAusentesH = stats?.reduce((acc, s) => acc + s.ausentesH, 0) ?? 0;
+  const totalAusentesM = stats?.reduce((acc, s) => acc + s.ausentesM, 0) ?? 0;
   const totalReposos = stats?.reduce((acc, s) => acc + s.reposos, 0) ?? 0;
   const totalReposesH = stats?.reduce((acc, s) => acc + s.reposesH, 0) ?? 0;
   const totalReposesM = stats?.reduce((acc, s) => acc + s.reposesM, 0) ?? 0;
@@ -110,6 +112,7 @@ export default function DashboardScreen() {
         <View style={[styles.globalCard, { borderColor: Colors.red + "50" }]}>
           <Text style={[styles.globalNum, { color: Colors.red }]}>{totalAusentes}</Text>
           <Text style={styles.globalLabel}>Ausentes</Text>
+          <Text style={styles.globalGender}>H:{totalAusentesH} | M:{totalAusentesM}</Text>
         </View>
       </View>
 
@@ -249,6 +252,7 @@ const styles = StyleSheet.create({
   },
   globalNum: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
   globalLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
+  globalGender: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText, marginTop: 1 },
   statusCardsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
