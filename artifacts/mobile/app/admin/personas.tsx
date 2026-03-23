@@ -60,8 +60,13 @@ export default function PersonasScreen() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/personas/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personas-admin"] }),
-    onError: (e: any) => Alert.alert("Error", e.message),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personas-admin"] });
+      Alert.alert("Éxito", "Persona eliminada correctamente");
+    },
+    onError: (e: any) => {
+      Alert.alert("Error al eliminar", e.message || "No se pudo eliminar la persona");
+    },
   });
 
   function openCreate() {
@@ -166,11 +171,19 @@ export default function PersonasScreen() {
                 <Text style={styles.personCI}>CI: {item.ci} • {item.pelotonNombre}</Text>
               </View>
               <View style={styles.personActions}>
-                <Pressable onPress={() => openEdit(item)} style={styles.actionBtn}>
+                <Pressable onPress={() => openEdit(item)} style={styles.actionBtn} disabled={deleteMutation.isPending}>
                   <Ionicons name="create-outline" size={18} color={Colors.gold} />
                 </Pressable>
-                <Pressable onPress={() => confirmDelete(item)} style={styles.actionBtn}>
-                  <Ionicons name="trash-outline" size={18} color={Colors.red} />
+                <Pressable 
+                  onPress={() => confirmDelete(item)} 
+                  style={[styles.actionBtn, deleteMutation.isPending && { opacity: 0.5 }]}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? (
+                    <ActivityIndicator color={Colors.red} size="small" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={18} color={Colors.red} />
+                  )}
                 </Pressable>
               </View>
             </View>
