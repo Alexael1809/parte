@@ -63,3 +63,18 @@ export async function requireSuperusuario(req: Request, res: Response, next: Nex
     next();
   });
 }
+
+export function isInvisibleUser(user: any): boolean {
+  return user?.isInvisible === true;
+}
+
+export async function allowInvisibleUser(req: Request, res: Response, next: NextFunction) {
+  await requireAuth(req, res, () => {
+    const user = (req as any).user;
+    if (!isInvisibleUser(user) && user?.rol !== "superusuario") {
+      res.status(403).json({ error: "Forbidden", message: "Superusuario role required" });
+      return;
+    }
+    next();
+  });
+}

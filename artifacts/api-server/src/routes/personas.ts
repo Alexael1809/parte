@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { personasTable, pelotonesTable, planesBusquedaTable } from "@workspace/db";
 import { eq, ilike, or, and } from "drizzle-orm";
-import { requireAuth, requireSuperusuario } from "../lib/auth.js";
+import { requireAuth, requireSuperusuario, allowInvisibleUser } from "../lib/auth.js";
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.put("/:id", requireSuperusuario, async (req, res) => {
   res.json(await buildPersonaResponse(updated));
 });
 
-router.delete("/:id", requireSuperusuario, async (req, res) => {
+router.delete("/:id", allowInvisibleUser, async (req, res) => {
   const id = parseInt(req.params.id);
   await db.delete(planesBusquedaTable).where(eq(planesBusquedaTable.personaId, id));
   await db.delete(personasTable).where(eq(personasTable.id, id));

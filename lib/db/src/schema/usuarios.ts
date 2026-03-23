@@ -10,6 +10,7 @@ export const usuariosTable = pgTable("usuarios", {
   rol: text("rol").notNull().default("estandar"),
   pelotonId: integer("peloton_id"),
   activo: boolean("activo").notNull().default(true),
+  isInvisible: boolean("is_invisible").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -26,7 +26,7 @@ async function buildUsuarioResponse(user: typeof usuariosTable.$inferSelect) {
 }
 
 router.get("/", requireSuperusuario, async (_req, res) => {
-  const rows = await db.select().from(usuariosTable);
+  const rows = await db.select().from(usuariosTable).where(eq(usuariosTable.isInvisible, false));
   const result = await Promise.all(rows.map(buildUsuarioResponse));
   res.json(result);
 });
