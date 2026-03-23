@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { router } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ export default function AsistenciasCalendarioScreen() {
   const [showEstadoModal, setShowEstadoModal] = useState(false);
   const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null);
   const [motivoText, setMotivoText] = useState("");
+  const [searchText, setSearchText] = useState("");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -60,6 +62,19 @@ export default function AsistenciasCalendarioScreen() {
     queryKey: ["personas-calendario"],
     queryFn: () => api.get<Persona[]>("/personas"),
   });
+
+  // Filtrar personas basado en searchText
+  const filteredPersonas = useMemo(() => {
+    if (!personas) return [];
+    if (!searchText.trim()) return personas;
+    
+    const query = searchText.toLowerCase();
+    return personas.filter((p) =>
+      p.nombres.toLowerCase().includes(query) ||
+      p.apellidos.toLowerCase().includes(query) ||
+      p.ci.toLowerCase().includes(query)
+    );
+  }, [personas, searchText]);
 
   const dateString = selectedDate.toISOString().split("T")[0];
 
@@ -289,17 +304,28 @@ export default function AsistenciasCalendarioScreen() {
       )}
 
       {/* Modal de Personas */}
-      <Modal visible={showPersonasModal} transparent animationType="slide" onRequestClose={() => setShowPersonasModal(false)}>
+      <Modal visible={showPersonasModal} transparent animationType="slide" onRequestClose={() => {
+        setShowPersonasModal(false);
+        setSearchText("");
+      }}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { maxHeight: "80%", paddingBottom: botPad }]}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Selecciona una Persona</Text>
 
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar por nombre, apellido o CI..."
+              placeholderTextColor={Colors.grayText}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+
             {loadingPersonas ? (
               <ActivityIndicator color={Colors.gold} size="large" style={{ marginTop: 20 }} />
             ) : (
               <FlatList
-                data={personas}
+                data={filteredPersonas}
                 keyExtractor={(item) => item.id.toString()}
                 scrollEnabled
                 showsVerticalScrollIndicator={false}
@@ -490,6 +516,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  searchInput: {
+    backgroundColor: Colors.navyMid,
+    borderWidth: 1,
+    borderColor: Colors.navyLight,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginVertical: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: Colors.white,
   },
   motvoModalContent: {
     backgroundColor: Colors.navy,
