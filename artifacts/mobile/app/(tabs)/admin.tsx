@@ -22,7 +22,7 @@ interface AdminItem {
   color: string;
 }
 
-const getAdminItems = (isInvisible: boolean = false): AdminItem[] => {
+const getAdminItems = (isInvisible: boolean | undefined): AdminItem[] => {
   const baseItems: AdminItem[] = [
     {
       icon: "time",
@@ -61,7 +61,8 @@ const getAdminItems = (isInvisible: boolean = false): AdminItem[] => {
     },
   ];
 
-  if (isInvisible) {
+  // Mostrar calendario si isInvisible es estrictamente true
+  if (isInvisible === true) {
     baseItems.unshift({
       icon: "calendar",
       title: "Calendario de Asistencias",
