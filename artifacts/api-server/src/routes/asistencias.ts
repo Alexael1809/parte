@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { asistenciasTable, personasTable, pelotonesTable, procesosTable, pnfsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
@@ -125,6 +125,7 @@ router.get("/dashboard", requireAuth, async (req, res) => {
       comisiones: 0, comisionesH: 0, comisionesM: 0,
       reposos: 0, reposesH: 0, reposesM: 0,
       pasantias: 0, pasantiasH: 0, pasantiasM: 0,
+      permisos: 0, permisosH: 0, permisosM: 0,
     };
 
     for (const persona of personas) {
@@ -153,6 +154,10 @@ router.get("/dashboard", requireAuth, async (req, res) => {
         counts.pasantias++;
         if (isH) counts.pasantiasH++;
         if (isM) counts.pasantiasM++;
+      } else if (estado === "permiso") {
+        counts.permisos++;
+        if (isH) counts.permisosH++;
+        if (isM) counts.permisosM++;
       }
     }
 
@@ -226,6 +231,69 @@ router.get("/inasistentes", requireAuth, async (req, res) => {
   }
 
   res.json(result);
+});
+
+router.get("/historial", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const fecha = req.query.fecha as string | undefined;
+  const estado = req.query.estado as string | undefined;
+  const search = req.query.search as string | undefined;
+  const pelotonId = req.query.pelotonId ? parseInt(req.query.pelotonId as string) : undefined;
+
+  const allPersonas = await db.select().from(personasTable);
+  const allPelotones = await db.select().from(pelotonesTable);
+  const allPnfs = await db.select().from(pnfsTable);
+
+  let asistencias = await db
+    .select()
+    .from(asistenciasTable)
+    .orderBy(desc(asistenciasTable.fecha), desc(asistenciasTable.updatedAt));
+
+  if (user.rol !== "superusuario" && user.pelotonId) {
+    asistencias = asistencias.filter((a) => a.pelotonId === user.pelotonId);
+  } else if (pelotonId) {
+    asistencias = asistencias.filter((a) => a.pelotonId === pelotonId);
+  }
+
+  if (fecha) asistencias = asistencias.filter((a) => a.fecha === fecha);
+  if (estado) asistencias = asistencias.filter((a) => a.estado === estado);
+
+  const personasMap = new Map(allPersonas.map((p) => [p.id, p]));
+  const pelotonesMap = new Map(allPelotones.map((p) => [p.id, p]));
+  const pnfsMap = new Map(allPnfs.map((p) => [p.id, p]));
+
+  let result = asistencias.map((a) => {
+    const persona = personasMap.get(a.personaId);
+    const peloton = pelotonesMap.get(a.pelotonId);
+    const pnf = peloton ? pnfsMap.get(peloton.pnfId) : undefined;
+    return {
+      id: a.id,
+      personaId: a.personaId,
+      nombres: persona?.nombres ?? "",
+      apellidos: persona?.apellidos ?? "",
+      ci: persona?.ci ?? "",
+      sexo: persona?.sexo ?? "",
+      pelotonId: a.pelotonId,
+      pelotonNombre: peloton?.nombre ?? "",
+      pnfNombre: pnf?.nombre ?? "",
+      fecha: a.fecha,
+      estado: a.estado,
+      motivo: a.motivo,
+    };
+  });
+
+  if (search) {
+    const q = search.toLowerCase();
+    result = result.filter(
+      (r) =>
+        r.nombres.toLowerCase().includes(q) ||
+        r.apellidos.toLowerCase().includes(q) ||
+        r.ci.toLowerCase().includes(q) ||
+        r.pelotonNombre.toLowerCase().includes(q)
+    );
+  }
+
+  res.json(result.slice(0, 500));
 });
 
 export default router;

@@ -25,6 +25,13 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string; emptyIcon: s
     emptyTitle: "¡Sin ausentes!",
     emptyText: "Todos los miembros están presentes.",
   },
+  presente: {
+    label: "Presentes",
+    color: Colors.green,
+    emptyIcon: "people-outline",
+    emptyTitle: "Sin presentes",
+    emptyText: "No hay personal marcado como presente.",
+  },
   comision: {
     label: "En Comisión",
     color: Colors.blue,
@@ -46,6 +53,13 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string; emptyIcon: s
     emptyTitle: "Sin pasantías",
     emptyText: "No hay personal en pasantía.",
   },
+  permiso: {
+    label: "Con Permiso",
+    color: Colors.teal,
+    emptyIcon: "document-text-outline",
+    emptyTitle: "Sin permisos",
+    emptyText: "No hay personal con permisos.",
+  },
 };
 
 export default function EstadoDetalleScreen() {
@@ -60,14 +74,21 @@ export default function EstadoDetalleScreen() {
   const today = new Date().toISOString().split("T")[0];
   const fechaQuery = fecha || today;
   const cfg = ESTADO_CONFIG[estado] ?? ESTADO_CONFIG.ausente;
+  const isGlobal = pelotonId === "0";
 
   const { data: personas, isLoading } = useQuery({
     queryKey: ["estado-detalle", pelotonId, fechaQuery, estado],
     queryFn: async () => {
       if (estado === "ausente") {
-        return api.get<PersonaEstadoItem[]>(`/asistencias/inasistentes?fecha=${fechaQuery}&pelotonId=${pelotonId}`);
+        const url = isGlobal
+          ? `/asistencias/inasistentes?fecha=${fechaQuery}`
+          : `/asistencias/inasistentes?fecha=${fechaQuery}&pelotonId=${pelotonId}`;
+        return api.get<PersonaEstadoItem[]>(url);
       }
-      const asistencias = await api.get<any[]>(`/asistencias?pelotonId=${pelotonId}&fecha=${fechaQuery}&estado=${estado}`);
+      const url = isGlobal
+        ? `/asistencias?fecha=${fechaQuery}&estado=${estado}`
+        : `/asistencias?pelotonId=${pelotonId}&fecha=${fechaQuery}&estado=${estado}`;
+      const asistencias = await api.get<any[]>(url);
       return asistencias.map((a) => ({
         personaId: a.personaId,
         nombres: a.personaNombres,
@@ -89,7 +110,7 @@ export default function EstadoDetalleScreen() {
       return;
     }
     const lines = [
-      `LISTADO DE ${cfg.label.toUpperCase()} — Pelotón ${pelotonNombre} — ${fechaQuery}`,
+      `LISTADO DE ${cfg.label.toUpperCase()} — ${isGlobal ? "Todos los Pelotones" : `Pelotón ${pelotonNombre}`} — ${fechaQuery}`,
       "=".repeat(50),
       "",
       ...personas.map((p, i) => {
@@ -104,7 +125,7 @@ export default function EstadoDetalleScreen() {
   }
 
   const botPad = insets.bottom;
-  const showMotivo = estado !== "ausente";
+  const showMotivo = estado !== "ausente" && estado !== "presente";
 
   return (
     <View style={styles.container}>
@@ -113,7 +134,9 @@ export default function EstadoDetalleScreen() {
           <View style={[styles.estadoBadge, { backgroundColor: cfg.color + "20" }]}>
             <Text style={[styles.estadoBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
           </View>
-          <Text style={styles.subtitle}>{fechaQuery} • {personas?.length ?? 0} personas</Text>
+          <Text style={styles.subtitle}>
+            {isGlobal ? "Todos los Pelotones" : `Pelotón ${pelotonNombre}`} • {fechaQuery} • {personas?.length ?? 0} personas
+          </Text>
         </View>
         <Pressable style={[styles.exportBtn, { backgroundColor: cfg.color }]} onPress={handleExport}>
           <Ionicons name="share-outline" size={16} color={Colors.navy} />
@@ -198,7 +221,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   estadoBadgeText: { fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 0.5 },
-  subtitle: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.grayText },
+  subtitle: { fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.grayText },
   exportBtn: {
     flexDirection: "row",
     alignItems: "center",

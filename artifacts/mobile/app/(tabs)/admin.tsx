@@ -24,6 +24,13 @@ interface AdminItem {
 
 const ADMIN_ITEMS: AdminItem[] = [
   {
+    icon: "time",
+    title: "Historial de Asistencias",
+    subtitle: "Registro completo con búsqueda y filtros",
+    route: "/admin/historial",
+    color: Colors.gold,
+  },
+  {
     icon: "people",
     title: "Usuarios",
     subtitle: "Gestionar cuentas de usuario",
@@ -49,7 +56,7 @@ const ADMIN_ITEMS: AdminItem[] = [
     title: "Personas",
     subtitle: "Registro de personal",
     route: "/admin/personas",
-    color: Colors.gold,
+    color: Colors.purple,
   },
 ];
 

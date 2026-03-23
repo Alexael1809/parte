@@ -36,7 +36,7 @@ export const api = {
   delete: <T>(path: string) => request<T>("DELETE", path),
 };
 
-export type Estado = "ausente" | "presente" | "comision" | "reposo" | "pasantia";
+export type Estado = "ausente" | "presente" | "comision" | "reposo" | "pasantia" | "permiso";
 
 export interface Persona {
   id: number;
@@ -122,6 +122,9 @@ export interface PelotonStats {
   pasantias: number;
   pasantiasH: number;
   pasantiasM: number;
+  permisos: number;
+  permisosH: number;
+  permisosM: number;
 }
 
 export interface PersonaEstadoItem {
@@ -134,6 +137,21 @@ export interface PersonaEstadoItem {
   pnfNombre: string;
   procesoNombre: string;
   estado: string;
+  motivo: string | null;
+}
+
+export interface HistorialItem {
+  id: number;
+  personaId: number;
+  nombres: string;
+  apellidos: string;
+  ci: string;
+  sexo: string;
+  pelotonId: number;
+  pelotonNombre: string;
+  pnfNombre: string;
+  fecha: string;
+  estado: Estado;
   motivo: string | null;
 }
 

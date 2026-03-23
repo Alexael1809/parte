@@ -25,9 +25,10 @@ const ESTADOS: { key: Estado; label: string; icon: string }[] = [
   { key: "comision", label: "Comisión", icon: "briefcase" },
   { key: "reposo", label: "Reposo", icon: "bed" },
   { key: "pasantia", label: "Pasantía", icon: "school" },
+  { key: "permiso", label: "Permiso", icon: "document-text" },
 ];
 
-const ESTADOS_CON_MOTIVO: Estado[] = ["comision", "reposo", "pasantia"];
+const ESTADOS_CON_MOTIVO: Estado[] = ["comision", "reposo", "pasantia", "permiso"];
 
 function getInitials(nombres: string, apellidos: string) {
   return `${nombres[0] ?? ""}${apellidos[0] ?? ""}`.toUpperCase();
@@ -125,18 +126,20 @@ export default function AsistenciaScreen() {
     comisiones: Object.values(asistencias).filter((a) => a.estado === "comision").length,
     reposos: Object.values(asistencias).filter((a) => a.estado === "reposo").length,
     pasantias: Object.values(asistencias).filter((a) => a.estado === "pasantia").length,
+    permisos: Object.values(asistencias).filter((a) => a.estado === "permiso").length,
   };
 
   const getMotivoLabel = (estado: Estado) => {
     if (estado === "comision") return "Comisión";
     if (estado === "reposo") return "Reposo";
     if (estado === "pasantia") return "Pasantía";
+    if (estado === "permiso") return "Permiso";
     return "";
   };
 
   const renderItem = useCallback(({ item: persona }: { item: Persona }) => {
     const estado = getPersonaEstado(persona.id);
-    const estadoColor = Colors.estados[estado];
+    const estadoColor = Colors.estados[estado] ?? Colors.estados.ausente;
     const motivoGuardado = asistencias[persona.id]?.motivo;
     return (
       <View style={[styles.personaCard, { borderLeftColor: estadoColor.text, borderLeftWidth: 3 }]}>
@@ -166,14 +169,14 @@ export default function AsistenciaScreen() {
         <View style={styles.estadoButtons}>
           {ESTADOS.map(({ key, icon }) => {
             const isActive = estado === key;
-            const col = Colors.estados[key];
+            const col = Colors.estados[key] ?? Colors.estados.ausente;
             return (
               <Pressable
                 key={key}
                 style={[styles.estadoBtn, isActive && { backgroundColor: col.bg }]}
                 onPress={() => setEstado(persona.id, key)}
               >
-                <Ionicons name={icon as any} size={18} color={isActive ? col.text : Colors.grayText + "50"} />
+                <Ionicons name={icon as any} size={16} color={isActive ? col.text : Colors.grayText + "50"} />
               </Pressable>
             );
           })}
@@ -192,6 +195,7 @@ export default function AsistenciaScreen() {
           { label: "C", count: counts.comisiones, color: Colors.blue },
           { label: "R", count: counts.reposos, color: Colors.orange },
           { label: "Pas", count: counts.pasantias, color: Colors.purple },
+          { label: "Per", count: counts.permisos, color: Colors.teal },
           { label: "Tot", count: total, color: Colors.white },
         ].map(({ label, count, color }) => (
           <View key={label} style={styles.summaryItem}>
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.navyLight,
   },
   summaryItem: { flex: 1, alignItems: "center" },
-  summaryNum: { fontFamily: "Inter_700Bold", fontSize: 16 },
+  summaryNum: { fontFamily: "Inter_700Bold", fontSize: 15 },
   summaryLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText },
   searchWrapper: {
     flexDirection: "row",
@@ -346,7 +350,7 @@ const styles = StyleSheet.create({
     borderLeftColor: Colors.navyLight,
   },
   estadoBtn: {
-    width: 40,
+    width: 36,
     height: "100%" as any,
     minHeight: 68,
     alignItems: "center",

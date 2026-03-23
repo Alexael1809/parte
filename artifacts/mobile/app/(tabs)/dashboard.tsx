@@ -70,7 +70,11 @@ export default function DashboardScreen() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const totalGlobal = stats?.reduce((acc, s) => acc + s.total, 0) ?? 0;
+  const totalGlobalH = stats?.reduce((acc, s) => acc + s.presentesH + s.ausentesH + s.comisionesH + s.reposesH + s.pasantiasH + s.permisosH, 0) ?? 0;
+  const totalGlobalM = stats?.reduce((acc, s) => acc + s.presentesM + s.ausentesM + s.comisionesM + s.reposesM + s.pasantiasM + s.permisosM, 0) ?? 0;
   const totalPresentes = stats?.reduce((acc, s) => acc + s.presentes, 0) ?? 0;
+  const totalPresentesH = stats?.reduce((acc, s) => acc + s.presentesH, 0) ?? 0;
+  const totalPresentesM = stats?.reduce((acc, s) => acc + s.presentesM, 0) ?? 0;
   const totalAusentes = stats?.reduce((acc, s) => acc + s.ausentes, 0) ?? 0;
   const totalAusentesH = stats?.reduce((acc, s) => acc + s.ausentesH, 0) ?? 0;
   const totalAusentesM = stats?.reduce((acc, s) => acc + s.ausentesM, 0) ?? 0;
@@ -80,6 +84,20 @@ export default function DashboardScreen() {
   const totalComisiones = stats?.reduce((acc, s) => acc + s.comisiones, 0) ?? 0;
   const totalComisionesH = stats?.reduce((acc, s) => acc + s.comisionesH, 0) ?? 0;
   const totalComisionesM = stats?.reduce((acc, s) => acc + s.comisionesM, 0) ?? 0;
+  const totalPermisos = stats?.reduce((acc, s) => acc + (s.permisos ?? 0), 0) ?? 0;
+  const totalPermisosH = stats?.reduce((acc, s) => acc + (s.permisosH ?? 0), 0) ?? 0;
+  const totalPermisosM = stats?.reduce((acc, s) => acc + (s.permisosM ?? 0), 0) ?? 0;
+  const totalPasantias = stats?.reduce((acc, s) => acc + s.pasantias, 0) ?? 0;
+  const totalPasantiasH = stats?.reduce((acc, s) => acc + s.pasantiasH, 0) ?? 0;
+  const totalPasantiasM = stats?.reduce((acc, s) => acc + s.pasantiasM, 0) ?? 0;
+
+  function goToGlobal(estado: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: "/inasistentes/[pelotonId]",
+      params: { pelotonId: "0", fecha, pelotonNombre: "Todos los Pelotones", estado },
+    });
+  }
 
   function goToDetalle(s: PelotonStats, estado: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -99,41 +117,77 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Global Stats */}
+      {/* Global Stats Row 1: Total, Presentes, Ausentes */}
       <View style={styles.globalStats}>
         <View style={styles.globalCard}>
           <Text style={styles.globalNum}>{totalGlobal}</Text>
           <Text style={styles.globalLabel}>Total</Text>
+          <Text style={styles.globalGender}>H:{totalGlobalH} | M:{totalGlobalM}</Text>
         </View>
-        <View style={[styles.globalCard, { borderColor: Colors.green + "50" }]}>
+        <Pressable
+          style={({ pressed }) => [styles.globalCard, { borderColor: Colors.green + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("presente")}
+        >
           <Text style={[styles.globalNum, { color: Colors.green }]}>{totalPresentes}</Text>
           <Text style={styles.globalLabel}>Presentes</Text>
-        </View>
-        <View style={[styles.globalCard, { borderColor: Colors.red + "50" }]}>
+          <Text style={styles.globalGender}>H:{totalPresentesH} | M:{totalPresentesM}</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.globalCard, { borderColor: Colors.red + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("ausente")}
+        >
           <Text style={[styles.globalNum, { color: Colors.red }]}>{totalAusentes}</Text>
           <Text style={styles.globalLabel}>Ausentes</Text>
           <Text style={styles.globalGender}>H:{totalAusentesH} | M:{totalAusentesM}</Text>
-        </View>
+        </Pressable>
       </View>
 
-      {/* Reposo + Comisión Cards */}
+      {/* Status Cards Row */}
       <View style={styles.statusCardsRow}>
-        <View style={[styles.statusCard, { borderColor: Colors.orange + "50" }]}>
+        <Pressable
+          style={({ pressed }) => [styles.statusCard, { borderColor: Colors.orange + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("reposo")}
+        >
           <View style={[styles.statusIconCircle, { backgroundColor: Colors.orange + "20" }]}>
-            <Ionicons name="bed" size={20} color={Colors.orange} />
+            <Ionicons name="bed" size={18} color={Colors.orange} />
           </View>
           <Text style={[styles.statusNum, { color: Colors.orange }]}>{totalReposos}</Text>
           <Text style={styles.statusTitle}>En Reposo</Text>
           <Text style={styles.statusSub}>H: {totalReposesH} | M: {totalReposesM}</Text>
-        </View>
-        <View style={[styles.statusCard, { borderColor: Colors.blue + "50" }]}>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.statusCard, { borderColor: Colors.blue + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("comision")}
+        >
           <View style={[styles.statusIconCircle, { backgroundColor: Colors.blue + "20" }]}>
-            <Ionicons name="briefcase" size={20} color={Colors.blue} />
+            <Ionicons name="briefcase" size={18} color={Colors.blue} />
           </View>
           <Text style={[styles.statusNum, { color: Colors.blue }]}>{totalComisiones}</Text>
           <Text style={styles.statusTitle}>En Comisión</Text>
           <Text style={styles.statusSub}>H: {totalComisionesH} | M: {totalComisionesM}</Text>
-        </View>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.statusCard, { borderColor: Colors.teal + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("permiso")}
+        >
+          <View style={[styles.statusIconCircle, { backgroundColor: Colors.teal + "20" }]}>
+            <Ionicons name="document-text" size={18} color={Colors.teal} />
+          </View>
+          <Text style={[styles.statusNum, { color: Colors.teal }]}>{totalPermisos}</Text>
+          <Text style={styles.statusTitle}>Permisos</Text>
+          <Text style={styles.statusSub}>H: {totalPermisosH} | M: {totalPermisosM}</Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.statusCard, { borderColor: Colors.purple + "50", opacity: pressed ? 0.75 : 1 }]}
+          onPress={() => goToGlobal("pasantia")}
+        >
+          <View style={[styles.statusIconCircle, { backgroundColor: Colors.purple + "20" }]}>
+            <Ionicons name="school" size={18} color={Colors.purple} />
+          </View>
+          <Text style={[styles.statusNum, { color: Colors.purple }]}>{totalPasantias}</Text>
+          <Text style={styles.statusTitle}>Pasantías</Text>
+          <Text style={styles.statusSub}>H: {totalPasantiasH} | M: {totalPasantiasM}</Text>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -159,10 +213,14 @@ export default function DashboardScreen() {
                   <Text style={styles.cardTitle}>PELOTÓN {s.pelotonNombre}</Text>
                   <Text style={styles.cardMeta}>{s.pnfNombre} — {s.procesoNombre}</Text>
                 </View>
-                <View style={styles.totalBadge}>
+                <Pressable
+                  style={({ pressed }) => [styles.totalBadge, { opacity: pressed ? 0.7 : 1 }]}
+                  onPress={() => goToDetalle(s, "presente")}
+                >
                   <Text style={styles.totalNum}>{s.total}</Text>
                   <Text style={styles.totalLabel}>Total</Text>
-                </View>
+                  <Text style={styles.totalGender}>H:{(s.presentesH + s.ausentesH + s.comisionesH + s.reposesH + s.pasantiasH + (s.permisosH ?? 0))} M:{(s.presentesM + s.ausentesM + s.comisionesM + s.reposesM + s.pasantiasM + (s.permisosM ?? 0))}</Text>
+                </Pressable>
               </View>
               <View style={styles.divider} />
               <View style={styles.statsContainer}>
@@ -172,6 +230,7 @@ export default function DashboardScreen() {
                   h={s.presentesH}
                   m={s.presentesM}
                   color={Colors.green}
+                  onPress={() => goToDetalle(s, "presente")}
                 />
                 <DrillRow
                   label="Ausentes"
@@ -205,6 +264,14 @@ export default function DashboardScreen() {
                   color={Colors.purple}
                   onPress={s.pasantias > 0 ? () => goToDetalle(s, "pasantia") : undefined}
                 />
+                <DrillRow
+                  label="Permisos"
+                  value={s.permisos ?? 0}
+                  h={s.permisosH ?? 0}
+                  m={s.permisosM ?? 0}
+                  color={Colors.teal}
+                  onPress={(s.permisos ?? 0) > 0 ? () => goToDetalle(s, "permiso") : undefined}
+                />
               </View>
             </View>
           ))
@@ -221,7 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingTop: 8,
   },
   title: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
@@ -238,48 +305,48 @@ const styles = StyleSheet.create({
   globalStats: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    gap: 10,
-    marginBottom: 24,
+    gap: 8,
+    marginBottom: 10,
   },
   globalCard: {
     flex: 1,
     backgroundColor: Colors.navyMid,
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.navyLight,
   },
-  globalNum: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
-  globalLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
-  globalGender: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText, marginTop: 1 },
+  globalNum: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.white },
+  globalLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText, marginTop: 2 },
+  globalGender: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText, marginTop: 1 },
   statusCardsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
-    marginBottom: 20,
-    gap: 10,
+    marginBottom: 12,
+    gap: 8,
   },
   statusCard: {
     flex: 1,
     backgroundColor: Colors.navyMid,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: "center",
-    gap: 4,
+    gap: 2,
   },
   statusIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  statusNum: { fontFamily: "Inter_700Bold", fontSize: 28 },
-  statusTitle: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.white },
-  statusSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText },
+  statusNum: { fontFamily: "Inter_700Bold", fontSize: 22 },
+  statusTitle: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.white, textAlign: "center" },
+  statusSub: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, gap: 14 },
   sectionTitle: {
@@ -301,21 +368,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    padding: 14,
   },
-  cardTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.white },
-  cardMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.grayText, marginTop: 2 },
+  cardTitle: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.white },
+  cardMeta: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
   totalBadge: {
     alignItems: "center",
     backgroundColor: Colors.navyLight,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   totalNum: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.gold },
-  totalLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText },
-  divider: { height: 1, backgroundColor: Colors.navyLight, marginHorizontal: 16 },
-  statsContainer: { padding: 16, gap: 10 },
+  totalLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText },
+  totalGender: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText },
+  divider: { height: 1, backgroundColor: Colors.navyLight, marginHorizontal: 14 },
+  statsContainer: { padding: 14, gap: 8 },
   statRowInner: { flexDirection: "row", alignItems: "center", gap: 8 },
   statDot: { width: 8, height: 8, borderRadius: 4 },
   statLabel: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.grayText, flex: 1 },
