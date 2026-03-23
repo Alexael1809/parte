@@ -108,48 +108,62 @@ export default function HistorialScreen() {
           placeholder="Filtrar por fecha (YYYY-MM-DD)"
           placeholderTextColor={Colors.grayText}
         />
-        {fechaFilter.length > 0 && (
-          <Pressable onPress={() => setFechaFilter("")}>
-            <Ionicons name="close-circle" size={16} color={Colors.grayText} />
-          </Pressable>
-        )}
       </View>
 
-      {/* Estado Filter Chips */}
+      {/* Estado Filters */}
       <View style={styles.filterRow}>
-        {ESTADOS_FILTER.map((f) => {
-          const isActive = estadoFilter === f.key;
-          const color = f.color ?? Colors.gold;
-          return (
+        <FlatList
+          data={ESTADOS_FILTER}
+          keyExtractor={(item) => item.key}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEnabled={true}
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}
+          renderItem={({ item }) => (
             <Pressable
-              key={f.key}
-              style={[
-                styles.filterChip,
-                isActive && { backgroundColor: color + "25", borderColor: color },
-              ]}
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setEstadoFilter(f.key);
+              onPress={() => {
+                setEstadoFilter(item.key);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
+              style={({ pressed }) => [
+                styles.filterChip,
+                {
+                  backgroundColor: estadoFilter === item.key ? item.color : Colors.navyMid,
+                  borderColor: item.color ?? Colors.navyLight,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
             >
-              <Text style={[styles.filterChipText, isActive && { color }]}>
-                {f.label}
+              <Text
+                style={[
+                  styles.filterChipText,
+                  { color: estadoFilter === item.key ? Colors.white : Colors.grayText },
+                ]}
+              >
+                {item.label}
               </Text>
             </Pressable>
-          );
-        })}
+          )}
+        />
       </View>
 
-      {/* Results count */}
-      <View style={styles.resultsRow}>
-        <Text style={styles.resultsText}>
-          {isLoading ? "Cargando..." : `${filtered.length} registros`}
-        </Text>
-        <Pressable onPress={() => refetch()} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={15} color={Colors.grayText} />
-        </Pressable>
-      </View>
+      {/* Results Row */}
+      {!isLoading && (
+        <View style={styles.resultsRow}>
+          <Text style={styles.resultsText}>{filtered.length} registros encontrados</Text>
+          <Pressable
+            onPress={() => {
+              refetch();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            style={styles.refreshBtn}
+          >
+            <Ionicons name="refresh" size={18} color={Colors.gold} />
+          </Pressable>
+        </View>
+      )}
 
+      {/* List */}
       {isLoading ? (
         <View style={styles.loading}>
           <ActivityIndicator color={Colors.gold} size="large" />
@@ -157,19 +171,31 @@ export default function HistorialScreen() {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item.id?.toString() ?? `${item.personaId}-${item.fecha}`}
           contentContainerStyle={[styles.listContent, { paddingBottom: botPad + 20 }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="document-text-outline" size={48} color={Colors.grayText} />
-              <Text style={styles.emptyText}>Sin registros</Text>
+              <Text style={styles.emptyText}>Sin registros de asistencia</Text>
             </View>
           }
           renderItem={({ item }) => {
             const cfg = ESTADO_COLORS[item.estado] ?? { color: Colors.grayText, label: item.estado };
             return (
-              <View style={[styles.itemCard, { borderLeftColor: cfg.color, borderLeftWidth: 3 }]}>
+              <Pressable
+                onPress={async () => {
+                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({
+                    pathname: "/admin/historial-detalle",
+                    params: { personaId: item.personaId },
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.itemCard,
+                  { borderLeftColor: cfg.color, borderLeftWidth: 3, opacity: pressed ? 0.75 : 1 },
+                ]}
+              >
                 <View style={styles.itemTop}>
                   <View style={styles.itemLeft}>
                     <Text style={styles.itemName}>{item.nombres} {item.apellidos}</Text>
@@ -181,6 +207,7 @@ export default function HistorialScreen() {
                       <Text style={[styles.estadoBadgeText, { color: cfg.color }]}>{cfg.label}</Text>
                     </View>
                     <Text style={styles.itemFecha}>{item.fecha}</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.grayText} />
                   </View>
                 </View>
                 {item.motivo ? (
@@ -189,7 +216,7 @@ export default function HistorialScreen() {
                     <Text style={[styles.motivoText, { color: cfg.color }]} numberOfLines={2}>{item.motivo}</Text>
                   </View>
                 ) : null}
-              </View>
+              </Pressable>
             );
           }}
         />
@@ -204,53 +231,50 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   backBtn: { padding: 4 },
-  title: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.white, flex: 1 },
+  title: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.white },
   searchWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginHorizontal: 20,
-    marginBottom: 10,
-    backgroundColor: Colors.navyLight,
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
+    borderWidth: 1,
+    borderColor: Colors.navyLight,
+    backgroundColor: Colors.navyMid,
   },
   searchInput: {
     flex: 1,
     fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.white,
   },
   fechaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginHorizontal: 20,
-    marginBottom: 10,
-    backgroundColor: Colors.navyLight,
-    borderRadius: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
     paddingHorizontal: 12,
-    height: 38,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.navyLight,
+    backgroundColor: Colors.navyMid,
   },
   fechaInput: {
     flex: 1,
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.white,
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-  },
+  filterRow: { marginVertical: 0 },
   filterChip: {
     borderRadius: 20,
     paddingHorizontal: 12,

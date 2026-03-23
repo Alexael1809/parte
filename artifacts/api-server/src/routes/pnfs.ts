@@ -36,4 +36,17 @@ router.put("/:id", requireSuperusuario, async (req, res) => {
   res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
 });
 
+router.delete("/:id", requireSuperusuario, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const [deleted] = await db
+    .delete(pnfsTable)
+    .where(eq(pnfsTable.id, id))
+    .returning();
+  if (!deleted) {
+    res.status(404).json({ error: "Not Found" });
+    return;
+  }
+  res.json({ success: true, message: "PNF deleted" });
+});
+
 export default router;

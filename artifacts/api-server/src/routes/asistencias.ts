@@ -86,6 +86,26 @@ router.post("/", requireAuth, async (req, res) => {
   res.json({ success: true, message: "Attendance saved" });
 });
 
+router.delete("/:id", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const id = parseInt(req.params.id);
+
+  const [asistencia] = await db.select().from(asistenciasTable).where(eq(asistenciasTable.id, id)).limit(1);
+
+  if (!asistencia) {
+    res.status(404).json({ error: "Not Found" });
+    return;
+  }
+
+  if (user.rol !== "superusuario" && user.pelotonId !== asistencia.pelotonId) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  await db.delete(asistenciasTable).where(eq(asistenciasTable.id, id));
+  res.json({ success: true, message: "Attendance record deleted" });
+});
+
 router.get("/dashboard", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const fecha = req.query.fecha as string;
@@ -229,6 +249,47 @@ router.get("/inasistentes", requireAuth, async (req, res) => {
       }
     }
   }
+
+  res.json(result);
+});
+
+router.get("/persona/:personaId", requireAuth, async (req, res) => {
+  const personaId = parseInt(req.params.personaId);
+
+  const allAsistencias = await db
+    .select()
+    .from(asistenciasTable)
+    .then((a) => a.filter((x) => x.personaId === personaId).sort((a, b) => a.fecha.localeCompare(b.fecha)));
+
+  const persona = await db.select().from(personasTable).where(eq(personasTable.id, personaId)).then((r) => r[0]);
+
+  if (!persona) {
+    res.status(404).json({ error: "Not Found" });
+    return;
+  }
+
+  const pelotones = await db.select().from(pelotonesTable);
+  const pnfs = await db.select().from(pnfsTable);
+  const pelotonMap = new Map(pelotones.map((p) => [p.id, p]));
+  const pnfMap = new Map(pnfs.map((p) => [p.id, p]));
+
+  const result = {
+    personaId: persona.id,
+    nombres: persona.nombres,
+    apellidos: persona.apellidos,
+    ci: persona.ci,
+    sexo: persona.sexo,
+    pelotonId: persona.pelotonId,
+    pelotonNombre: pelotonMap.get(persona.pelotonId)?.nombre ?? "",
+    pnfNombre: pnfMap.get(pelotonMap.get(persona.pelotonId)?.pnfId ?? 0)?.nombre ?? "",
+    asistencias: allAsistencias.map((a) => ({
+      id: a.id,
+      fecha: a.fecha,
+      estado: a.estado,
+      motivo: a.motivo,
+      createdAt: a.createdAt.toISOString(),
+    })),
+  };
 
   res.json(result);
 });
