@@ -48,6 +48,7 @@ interface PersonaHistorial {
 
 export default function HistorialDetalleScreen() {
   const { personaId } = useLocalSearchParams<{ personaId: string }>();
+  const personaIdNum = personaId ? parseInt(personaId) : 0;
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -56,8 +57,9 @@ export default function HistorialDetalleScreen() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const { data: persona, isLoading, refetch } = useQuery({
-    queryKey: ["historial-detalle", personaId],
-    queryFn: () => api.get<PersonaHistorial>(`/asistencias/persona/${personaId}`),
+    queryKey: ["historial-detalle", personaIdNum],
+    queryFn: () => api.get<PersonaHistorial>(`/asistencias/persona/${personaIdNum}`),
+    enabled: personaIdNum > 0,
   });
 
   async function handleDelete(asistenciaId: number) {
@@ -150,7 +152,6 @@ export default function HistorialDetalleScreen() {
         }
         renderItem={({ item }) => {
           const cfg = ESTADO_COLORS[item.estado] ?? { color: Colors.grayText, label: item.estado };
-          const esEliminable = item.estado === "ausente" || item.estado === "permiso" || item.estado === "comision" || item.estado === "reposo" || item.estado === "pasantia";
           return (
             <View style={[styles.itemCard, { borderLeftColor: cfg.color, borderLeftWidth: 3 }]}>
               <View style={styles.itemTop}>
@@ -160,7 +161,7 @@ export default function HistorialDetalleScreen() {
                     <Text style={[styles.estadoText, { color: cfg.color }]}>{cfg.label}</Text>
                   </View>
                 </View>
-                {esEliminable && deleting !== item.id && (
+                {deleting !== item.id && (
                   <Pressable
                     onPress={() => handleDelete(item.id)}
                     style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.6 : 1 }]}

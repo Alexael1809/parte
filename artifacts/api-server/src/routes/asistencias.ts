@@ -87,18 +87,12 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {
-  const user = (req as any).user;
   const id = parseInt(req.params.id);
 
   const [asistencia] = await db.select().from(asistenciasTable).where(eq(asistenciasTable.id, id)).limit(1);
 
   if (!asistencia) {
     res.status(404).json({ error: "Not Found" });
-    return;
-  }
-
-  if (user.rol !== "superusuario" && user.pelotonId !== asistencia.pelotonId) {
-    res.status(403).json({ error: "Forbidden" });
     return;
   }
 
