@@ -7,6 +7,7 @@ import pelotonesRouter from "./pelotones.js";
 import personasRouter from "./personas.js";
 import asistenciasRouter from "./asistencias.js";
 import usuariosRouter from "./usuarios.js";
+import configuracionRouter from "./configuracion.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/pelotones", pelotonesRouter);
 router.use("/personas", personasRouter);
 router.use("/asistencias", asistenciasRouter);
 router.use("/usuarios", usuariosRouter);
+router.use("/configuracion", configuracionRouter);
 
 export default router;

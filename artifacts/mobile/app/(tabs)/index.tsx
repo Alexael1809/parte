@@ -35,6 +35,15 @@ export default function HomeScreen() {
     queryFn: () => api.get<Peloton[]>("/pelotones"),
   });
 
+  const { data: configData } = useQuery({
+    queryKey: ["configuracion-bloqueo"],
+    queryFn: () => api.get<{ bloqueado: boolean }>("/configuracion/bloqueo"),
+    refetchInterval: 15000,
+  });
+
+  const bloqueado = configData?.bloqueado ?? false;
+  const esColector = user?.rol !== "superusuario";
+
   const [refreshing, setRefreshing] = useState(false);
 
   async function onRefresh() {
@@ -51,7 +60,6 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Bienvenido,</Text>
@@ -62,7 +70,6 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      {/* Date Card */}
       <View style={styles.dateCard}>
         <View style={styles.dateLeft}>
           <Ionicons name="calendar" size={18} color={Colors.gold} />
@@ -72,6 +79,17 @@ export default function HomeScreen() {
           <Text style={styles.rolText}>{user?.rol === "superusuario" ? "Admin" : "Recolector"}</Text>
         </View>
       </View>
+
+      {/* Banner de bloqueo para colectores */}
+      {bloqueado && esColector && (
+        <View style={styles.bloqueoBanner}>
+          <Ionicons name="lock-closed" size={18} color={Colors.red} />
+          <View style={styles.bloqueoBannerTexts}>
+            <Text style={styles.bloqueoBannerTitle}>Sistema Bloqueado</Text>
+            <Text style={styles.bloqueoBannerSub}>No puedes registrar asistencias en este momento</Text>
+          </View>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -94,7 +112,12 @@ export default function HomeScreen() {
           </View>
         ) : (
           displayPelotones.map((peloton) => (
-            <PelotonCard key={peloton.id} peloton={peloton} today={today} />
+            <PelotonCard
+              key={peloton.id}
+              peloton={peloton}
+              today={today}
+              bloqueado={bloqueado && esColector}
+            />
           ))
         )}
       </ScrollView>
@@ -102,11 +125,16 @@ export default function HomeScreen() {
   );
 }
 
-function PelotonCard({ peloton, today }: { peloton: Peloton; today: string }) {
+function PelotonCard({ peloton, today, bloqueado }: { peloton: Peloton; today: string; bloqueado: boolean }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.pelotonCard, { opacity: pressed ? 0.9 : 1 }]}
+      style={({ pressed }) => [
+        styles.pelotonCard,
+        bloqueado && styles.pelotonCardBloqueado,
+        { opacity: pressed && !bloqueado ? 0.9 : 1 },
+      ]}
       onPress={async () => {
+        if (bloqueado) return;
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         router.push({ pathname: "/asistencia/[pelotonId]", params: { pelotonId: peloton.id, fecha: today } });
       }}
@@ -124,20 +152,23 @@ function PelotonCard({ peloton, today }: { peloton: Peloton; today: string }) {
           </View>
         </View>
       </View>
-      <View style={styles.pelotonCta}>
-        <Ionicons name="clipboard-outline" size={16} color={Colors.navy} />
-        <Text style={styles.pelotonCtaText}>TOMAR ASISTENCIA HOY</Text>
-        <Ionicons name="chevron-forward" size={16} color={Colors.navy} />
+      <View style={[styles.pelotonCta, bloqueado && styles.pelotonCtaBloqueado]}>
+        <Ionicons
+          name={bloqueado ? "lock-closed" : "clipboard-outline"}
+          size={16}
+          color={bloqueado ? Colors.red : Colors.navy}
+        />
+        <Text style={[styles.pelotonCtaText, bloqueado && styles.pelotonCtaTextBloqueado]}>
+          {bloqueado ? "ASISTENCIA BLOQUEADA" : "TOMAR ASISTENCIA HOY"}
+        </Text>
+        {!bloqueado && <Ionicons name="chevron-forward" size={16} color={Colors.navy} />}
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.navy,
-  },
+  container: { flex: 1, backgroundColor: Colors.navy },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -146,22 +177,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingTop: 8,
   },
-  greeting: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Colors.grayText,
-  },
-  userName: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 22,
-    color: Colors.white,
-  },
-  logoutBtn: {
-    padding: 8,
-  },
+  greeting: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.grayText },
+  userName: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.white },
+  logoutBtn: { padding: 8 },
   dateCard: {
     marginHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 12,
     backgroundColor: Colors.navyLight,
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -170,18 +191,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  dateLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  dateText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 12,
-    color: Colors.grayText,
-    flex: 1,
-  },
+  dateLeft: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  dateText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.grayText, flex: 1 },
   rolBadge: {
     backgroundColor: Colors.navyMid,
     borderRadius: 8,
@@ -190,23 +201,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.grayText + "30",
   },
-  rolBadgeAdmin: {
-    borderColor: Colors.gold + "50",
-    backgroundColor: Colors.gold + "15",
+  rolBadgeAdmin: { borderColor: Colors.gold + "50", backgroundColor: Colors.gold + "15" },
+  rolText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: Colors.gold, letterSpacing: 0.5 },
+  bloqueoBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: Colors.red + "15",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.red + "40",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  rolText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
-    color: Colors.gold,
-    letterSpacing: 0.5,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    gap: 14,
-  },
+  bloqueoBannerTexts: { flex: 1 },
+  bloqueoBannerTitle: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.red },
+  bloqueoBannerSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, gap: 14 },
   sectionTitle: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
@@ -222,36 +236,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.navyLight,
   },
-  pelotonCardTop: {
-    flexDirection: "row",
-    padding: 18,
-    alignItems: "center",
-    gap: 12,
+  pelotonCardBloqueado: {
+    borderColor: Colors.red + "30",
+    opacity: 0.8,
   },
-  pelotonInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  pelotonNombre: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 17,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  pelotonMeta: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-    color: Colors.grayText,
-  },
-  pelotonMeta2: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Colors.grayText + "80",
-  },
-  pelotonRight: {
-    alignItems: "flex-end",
-    gap: 8,
-  },
+  pelotonCardTop: { flexDirection: "row", padding: 18, alignItems: "center", gap: 12 },
+  pelotonInfo: { flex: 1, gap: 4 },
+  pelotonNombre: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.white, letterSpacing: 0.5 },
+  pelotonMeta: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.grayText },
+  pelotonMeta2: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText + "80" },
+  pelotonRight: { alignItems: "flex-end", gap: 8 },
   totalBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -261,11 +255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  totalText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: Colors.gold,
-  },
+  totalText: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.gold },
   pelotonCta: {
     flexDirection: "row",
     alignItems: "center",
@@ -274,25 +264,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gold,
     paddingVertical: 12,
   },
-  pelotonCtaText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-    color: Colors.navy,
-    letterSpacing: 1,
-  },
-  skeletonCard: {
-    height: 120,
-    backgroundColor: Colors.navyLight,
-    borderRadius: 16,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    color: Colors.grayText,
-  },
+  pelotonCtaBloqueado: { backgroundColor: Colors.red + "20" },
+  pelotonCtaText: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.navy, letterSpacing: 1 },
+  pelotonCtaTextBloqueado: { color: Colors.red },
+  skeletonCard: { height: 120, backgroundColor: Colors.navyLight, borderRadius: 16 },
+  emptyState: { alignItems: "center", paddingVertical: 60, gap: 12 },
+  emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.grayText },
 });

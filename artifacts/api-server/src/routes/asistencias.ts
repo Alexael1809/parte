@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { asistenciasTable, personasTable, pelotonesTable, procesosTable, pnfsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, allowInvisibleUser } from "../lib/auth.js";
+import { getBloqueado } from "./configuracion.js";
 
 const router = Router();
 
@@ -12,12 +13,19 @@ router.get("/", requireAuth, async (req, res) => {
   const fecha = req.query.fecha as string | undefined;
   const estado = req.query.estado as string | undefined;
 
+  const bloqueado = await getBloqueado();
+
   let asistencias = await db.select().from(asistenciasTable);
   let personas = await db.select().from(personasTable);
 
   if (user.rol !== "superusuario" && user.pelotonId) {
     asistencias = asistencias.filter((a) => a.pelotonId === user.pelotonId);
     personas = personas.filter((p) => p.pelotonId === user.pelotonId);
+
+    // Si el sistema está bloqueado, el colector solo ve sus propias asistencias
+    if (bloqueado) {
+      asistencias = asistencias.filter((a) => a.usuarioId === user.id);
+    }
   } else {
     if (pelotonId) {
       asistencias = asistencias.filter((a) => a.pelotonId === pelotonId);
@@ -52,6 +60,19 @@ router.post("/", requireAuth, async (req, res) => {
   if (!pelotonId || !fecha || !registros) {
     res.status(400).json({ error: "Bad Request", message: "pelotonId, fecha, registros required" });
     return;
+  }
+
+  // Verificar bloqueo del sistema (solo afecta a colectores, no a superusuarios ni invisibles)
+  if (user.rol !== "superusuario" && !user.isInvisible) {
+    const bloqueado = await getBloqueado();
+    if (bloqueado) {
+      res.status(403).json({
+        error: "Forbidden",
+        message: "El sistema de asistencias está bloqueado. Contacte al administrador.",
+        bloqueado: true,
+      });
+      return;
+    }
   }
 
   if (user.rol !== "superusuario" && user.pelotonId !== pelotonId) {

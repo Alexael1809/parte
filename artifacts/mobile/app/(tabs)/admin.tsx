@@ -6,12 +6,17 @@ import {
   Pressable,
   ScrollView,
   Platform,
+  ActivityIndicator,
+  Switch,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import Colors from "@/constants/colors";
 
 interface AdminItem {
@@ -78,8 +83,47 @@ const getAdminItems = (isInvisible: boolean | undefined): AdminItem[] => {
 export default function AdminScreen() {
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  const { data: configData, isLoading: loadingConfig } = useQuery({
+    queryKey: ["configuracion-bloqueo"],
+    queryFn: () => api.get<{ bloqueado: boolean }>("/configuracion/bloqueo"),
+    refetchInterval: 10000,
+  });
+
+  const bloqueado = configData?.bloqueado ?? false;
+
+  const toggleMutation = useMutation({
+    mutationFn: (nuevoEstado: boolean) =>
+      api.put<{ bloqueado: boolean }>("/configuracion/bloqueo", { bloqueado: nuevoEstado }),
+    onSuccess: (data) => {
+      qc.setQueryData(["configuracion-bloqueo"], data);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (e: any) => Alert.alert("Error", e.message),
+  });
+
+  function handleToggle(value: boolean) {
+    const accion = value ? "bloquear" : "desbloquear";
+    Alert.alert(
+      value ? "Bloquear Asistencias" : "Desbloquear Asistencias",
+      `¿Estás seguro de que deseas ${accion} el registro de asistencias? ${
+        value
+          ? "Los colectores no podrán enviar ni modificar asistencias."
+          : "Los colectores podrán volver a registrar asistencias."
+      }`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: value ? "Bloquear" : "Desbloquear",
+          style: value ? "destructive" : "default",
+          onPress: () => toggleMutation.mutate(value),
+        },
+      ]
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -109,7 +153,41 @@ export default function AdminScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: botPad + 80 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Gestión del Sistema</Text>
+        {/* Panel de Control del Sistema */}
+        <Text style={styles.sectionTitle}>Control del Sistema</Text>
+
+        <View style={[styles.bloqueoCard, bloqueado && styles.bloqueoCardActivo]}>
+          <View style={[styles.bloqueoIconWrapper, { backgroundColor: bloqueado ? Colors.red + "20" : Colors.green + "20" }]}>
+            <Ionicons
+              name={bloqueado ? "lock-closed" : "lock-open"}
+              size={24}
+              color={bloqueado ? Colors.red : Colors.green}
+            />
+          </View>
+          <View style={styles.bloqueoInfo}>
+            <Text style={styles.bloqueoTitle}>
+              {bloqueado ? "Asistencias Bloqueadas" : "Asistencias Activas"}
+            </Text>
+            <Text style={styles.bloqueoSubtitle}>
+              {bloqueado
+                ? "Los colectores no pueden registrar asistencias"
+                : "Los colectores pueden registrar asistencias"}
+            </Text>
+          </View>
+          {loadingConfig || toggleMutation.isPending ? (
+            <ActivityIndicator color={Colors.gold} size="small" />
+          ) : (
+            <Switch
+              value={bloqueado}
+              onValueChange={handleToggle}
+              trackColor={{ false: Colors.green + "60", true: Colors.red + "80" }}
+              thumbColor={bloqueado ? Colors.red : Colors.green}
+            />
+          )}
+        </View>
+
+        {/* Gestión del Sistema */}
+        <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Gestión del Sistema</Text>
 
         {getAdminItems(user?.isInvisible).map((item) => (
           <Pressable
@@ -190,6 +268,30 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 4,
   },
+  bloqueoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: Colors.navyMid,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.green + "40",
+  },
+  bloqueoCardActivo: {
+    borderColor: Colors.red + "40",
+    backgroundColor: Colors.red + "08",
+  },
+  bloqueoIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bloqueoInfo: { flex: 1 },
+  bloqueoTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.white },
+  bloqueoSubtitle: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.grayText, marginTop: 2 },
   adminCard: {
     flexDirection: "row",
     alignItems: "center",
