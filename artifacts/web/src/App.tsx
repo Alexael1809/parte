@@ -18,6 +18,7 @@ import ProcesosPage from "@/pages/admin/procesos";
 import UsuariosPage from "@/pages/admin/usuarios";
 import AsistenciasCalendario from "@/pages/admin/asistencias";
 import BloqueoPage from "@/pages/admin/bloqueo";
+import ColectorDashboardPage from "@/pages/colector-dashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -76,6 +77,10 @@ function Router() {
 
       <Route path="/asistencia">
         {() => <ProtectedRoute><HomePage /></ProtectedRoute>}
+      </Route>
+
+      <Route path="/colector-dashboard">
+        {() => <ProtectedRoute><ColectorDashboardPage /></ProtectedRoute>}
       </Route>
 
       <Route path="/admin/historial/:personaId">

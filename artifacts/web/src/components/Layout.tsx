@@ -49,18 +49,17 @@ function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   }
 
   return (
-    <Link href={item.href}>
-      <a
-        onClick={onClick}
-        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-          isActive
-            ? "bg-amber-500/20 text-amber-400"
-            : "text-gray-300 hover:bg-white/5 hover:text-white"
-        }`}
-      >
-        <span className="flex-shrink-0">{item.icon}</span>
-        <span>{item.label}</span>
-      </a>
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+        isActive
+          ? "bg-amber-500/20 text-amber-400"
+          : "text-gray-300 hover:bg-white/5 hover:text-white"
+      }`}
+    >
+      <span className="flex-shrink-0">{item.icon}</span>
+      <span>{item.label}</span>
     </Link>
   );
 }
@@ -69,12 +68,16 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
   const { user, logout, isSuperusuario } = useAuth();
   const [, navigate] = useLocation();
 
+  const isColector = user?.rol === "estandar" && !user?.isInvisible;
+
   const navItems: NavItem[] = [
     { label: "Inicio", href: "/", icon: <Home size={16} /> },
     ...(isSuperusuario()
       ? [{ label: "Dashboard", href: "/dashboard", icon: <BarChart2 size={16} /> }]
       : []),
-    { label: "Tomar Asistencia", href: "/asistencia", icon: <ClipboardList size={16} /> },
+    ...(isColector
+      ? [{ label: "Dashboard", href: "/colector-dashboard", icon: <BarChart2 size={16} /> }]
+      : []),
     ...(isSuperusuario()
       ? [{
           label: "Administración", href: "/admin", icon: <Settings size={16} />,
