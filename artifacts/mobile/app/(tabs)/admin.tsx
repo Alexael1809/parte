@@ -78,9 +78,6 @@ const getAdminItems = (isInvisible: boolean | undefined): AdminItem[] => {
 export default function AdminScreen() {
   const { user, logout } = useAuth();
   const insets = useSafeAreaInsets();
-  
-  // Debug: verificar isInvisible
-  console.log("[ADMIN] user?.isInvisible =", user?.isInvisible, "user?.rol =", user?.rol);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 

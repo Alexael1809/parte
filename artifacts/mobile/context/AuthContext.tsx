@@ -46,8 +46,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = await AsyncStorage.getItem("auth_token");
       const storedUser = await AsyncStorage.getItem("auth_user");
       if (storedToken && storedUser) {
+        // Cargar datos del caché primero para respuesta inmediata
+        const cachedUser = JSON.parse(storedUser) as AuthUser;
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(cachedUser);
+
+        // Refrescar datos del servidor para obtener campos actualizados (ej: isInvisible)
+        try {
+          const meRes = await fetch(`${BASE_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+          });
+          if (meRes.ok) {
+            const freshUser: AuthUser = await meRes.json();
+            await AsyncStorage.setItem("auth_user", JSON.stringify(freshUser));
+            setUser(freshUser);
+          } else {
+            // Token inválido o expirado, limpiar sesión
+            await AsyncStorage.removeItem("auth_token");
+            await AsyncStorage.removeItem("auth_user");
+            setToken(null);
+            setUser(null);
+          }
+        } catch {
+          // Sin conexión: usar datos en caché
+        }
       }
     } catch (e) {
       console.error("Failed to load auth", e);
