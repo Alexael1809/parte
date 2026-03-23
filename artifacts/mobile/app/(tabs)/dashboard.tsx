@@ -75,6 +75,9 @@ export default function DashboardScreen() {
   const totalReposos = stats?.reduce((acc, s) => acc + s.reposos, 0) ?? 0;
   const totalReposesH = stats?.reduce((acc, s) => acc + s.reposesH, 0) ?? 0;
   const totalReposesM = stats?.reduce((acc, s) => acc + s.reposesM, 0) ?? 0;
+  const totalComisiones = stats?.reduce((acc, s) => acc + s.comisiones, 0) ?? 0;
+  const totalComisionesH = stats?.reduce((acc, s) => acc + s.comisionesH, 0) ?? 0;
+  const totalComisionesM = stats?.reduce((acc, s) => acc + s.comisionesM, 0) ?? 0;
 
   function goToDetalle(s: PelotonStats, estado: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -110,18 +113,24 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Reposo Highlight Card */}
-      <View style={styles.reposoCard}>
-        <View style={styles.reposoLeft}>
-          <View style={styles.reposoIconCircle}>
-            <Ionicons name="bed" size={22} color={Colors.orange} />
+      {/* Reposo + Comisión Cards */}
+      <View style={styles.statusCardsRow}>
+        <View style={[styles.statusCard, { borderColor: Colors.orange + "50" }]}>
+          <View style={[styles.statusIconCircle, { backgroundColor: Colors.orange + "20" }]}>
+            <Ionicons name="bed" size={20} color={Colors.orange} />
           </View>
-          <View>
-            <Text style={styles.reposoTitle}>Personal en Reposo</Text>
-            <Text style={styles.reposoSub}>H: {totalReposesH} | M: {totalReposesM}</Text>
-          </View>
+          <Text style={[styles.statusNum, { color: Colors.orange }]}>{totalReposos}</Text>
+          <Text style={styles.statusTitle}>En Reposo</Text>
+          <Text style={styles.statusSub}>H: {totalReposesH} | M: {totalReposesM}</Text>
         </View>
-        <Text style={styles.reposoNum}>{totalReposos}</Text>
+        <View style={[styles.statusCard, { borderColor: Colors.blue + "50" }]}>
+          <View style={[styles.statusIconCircle, { backgroundColor: Colors.blue + "20" }]}>
+            <Ionicons name="briefcase" size={20} color={Colors.blue} />
+          </View>
+          <Text style={[styles.statusNum, { color: Colors.blue }]}>{totalComisiones}</Text>
+          <Text style={styles.statusTitle}>En Comisión</Text>
+          <Text style={styles.statusSub}>H: {totalComisionesH} | M: {totalComisionesM}</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -240,31 +249,33 @@ const styles = StyleSheet.create({
   },
   globalNum: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
   globalLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
-  reposoCard: {
+  statusCardsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     marginHorizontal: 20,
     marginBottom: 20,
+    gap: 10,
+  },
+  statusCard: {
+    flex: 1,
     backgroundColor: Colors.navyMid,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.orange + "50",
-    paddingHorizontal: 18,
     paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    gap: 4,
   },
-  reposoLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
-  reposoIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.orange + "20",
+  statusIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 4,
   },
-  reposoTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.white },
-  reposoSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.grayText, marginTop: 2 },
-  reposoNum: { fontFamily: "Inter_700Bold", fontSize: 32, color: Colors.orange },
+  statusNum: { fontFamily: "Inter_700Bold", fontSize: 28 },
+  statusTitle: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.white },
+  statusSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, gap: 14 },
   sectionTitle: {
