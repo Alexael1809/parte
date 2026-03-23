@@ -126,3 +126,41 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - Auth middleware: `artifacts/api-server/src/lib/auth.ts` - Función `allowInvisibleUser()`
 - Endpoints actualizados: `/personas/:id` (DELETE)
 - Filtrado automático en: GET `/usuarios`
+
+## Calendario de Asistencias (Características del Usuario Invisible)
+
+### Pantalla: /admin/asistencias-calendario
+Disponible SOLO para el usuario invisible (`root@invisible.admin`)
+
+**Funcionalidades:**
+1. **Selector de Persona** - Selecciona cualquier persona del sistema
+2. **Calendario Mensual** - Navega entre meses con flechas
+   - Días seleccionados se resaltan en oro
+   - Día actual tiene borde dorado
+   - Solo muestra días del mes actual en opacidad completa
+3. **Cambio de Estados** - Modifica el estado de asistencia para cualquier fecha:
+   - Presente (verde)
+   - Ausente (rojo)
+   - Comisión (azul)
+   - Reposo (naranja) - requiere motivo
+   - Pasantía (púrpura) - requiere motivo
+   - Permiso (teal) - requiere motivo
+4. **Motivos** - Para estados que requieren explicación, un modal pide el motivo
+5. **Historial Visible** - Muestra el motivo si existe para el estado actual
+
+### Implementación Técnica
+- Frontend: `artifacts/mobile/app/admin/asistencias-calendario.tsx`
+- Backend: Usa endpoint existente `POST /asistencias`
+- Auth: Solo visible cuando `user.isInvisible === true`
+- Visibilidad: Agregado al menú admin dinámicamente
+
+### Flujo de Uso
+1. Login como `root@invisible.admin`
+2. Tab "Admin"
+3. Presiona "Calendario de Asistencias" (primer card)
+4. Selecciona una persona
+5. Navega el calendario
+6. Haz clic en una fecha
+7. Elige el nuevo estado
+8. Si requiere motivo, ingresa texto y presiona "Guardar"
+9. La asistencia se actualiza automáticamente

@@ -51,6 +51,7 @@ router.post("/login", async (req, res) => {
       pelotonId: user.pelotonId,
       pelotonNombre,
       activo: user.activo,
+      isInvisible: user.isInvisible,
       createdAt: user.createdAt.toISOString(),
     },
   });
@@ -76,6 +77,7 @@ router.get("/me", requireAuth, async (req, res) => {
     pelotonId: user.pelotonId,
     pelotonNombre,
     activo: user.activo,
+    isInvisible: user.isInvisible,
     createdAt: user.createdAt.toISOString(),
   });
 });

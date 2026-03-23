@@ -17,6 +17,7 @@ export interface AuthUser {
   pelotonId: number | null;
   pelotonNombre: string | null;
   activo: boolean;
+  isInvisible?: boolean;
   createdAt: string;
 }
 

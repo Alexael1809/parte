@@ -22,43 +22,57 @@ interface AdminItem {
   color: string;
 }
 
-const ADMIN_ITEMS: AdminItem[] = [
-  {
-    icon: "time",
-    title: "Historial de Asistencias",
-    subtitle: "Registro completo con búsqueda y filtros",
-    route: "/admin/historial",
-    color: Colors.gold,
-  },
-  {
-    icon: "people",
-    title: "Usuarios",
-    subtitle: "Gestionar cuentas de usuario",
-    route: "/admin/usuarios",
-    color: Colors.blue,
-  },
-  {
-    icon: "flag",
-    title: "Procesos",
-    subtitle: "Administrar procesos activos",
-    route: "/admin/procesos",
-    color: Colors.orange,
-  },
-  {
-    icon: "grid",
-    title: "Pelotones",
-    subtitle: "Gestionar pelotones",
-    route: "/admin/pelotones",
-    color: Colors.green,
-  },
-  {
-    icon: "person-add",
-    title: "Personas",
-    subtitle: "Registro de personal",
-    route: "/admin/personas",
-    color: Colors.purple,
-  },
-];
+const getAdminItems = (isInvisible: boolean = false): AdminItem[] => {
+  const baseItems: AdminItem[] = [
+    {
+      icon: "time",
+      title: "Historial de Asistencias",
+      subtitle: "Registro completo con búsqueda y filtros",
+      route: "/admin/historial",
+      color: Colors.gold,
+    },
+    {
+      icon: "people",
+      title: "Usuarios",
+      subtitle: "Gestionar cuentas de usuario",
+      route: "/admin/usuarios",
+      color: Colors.blue,
+    },
+    {
+      icon: "flag",
+      title: "Procesos",
+      subtitle: "Administrar procesos activos",
+      route: "/admin/procesos",
+      color: Colors.orange,
+    },
+    {
+      icon: "grid",
+      title: "Pelotones",
+      subtitle: "Gestionar pelotones",
+      route: "/admin/pelotones",
+      color: Colors.green,
+    },
+    {
+      icon: "person-add",
+      title: "Personas",
+      subtitle: "Registro de personal",
+      route: "/admin/personas",
+      color: Colors.purple,
+    },
+  ];
+
+  if (isInvisible) {
+    baseItems.unshift({
+      icon: "calendar",
+      title: "Calendario de Asistencias",
+      subtitle: "Gestor avanzado de asistencias por fecha",
+      route: "/admin/asistencias-calendario",
+      color: Colors.teal,
+    });
+  }
+
+  return baseItems;
+};
 
 export default function AdminScreen() {
   const { user, logout } = useAuth();
@@ -96,7 +110,7 @@ export default function AdminScreen() {
       >
         <Text style={styles.sectionTitle}>Gestión del Sistema</Text>
 
-        {ADMIN_ITEMS.map((item) => (
+        {getAdminItems(user?.isInvisible).map((item) => (
           <Pressable
             key={item.route}
             style={({ pressed }) => [styles.adminCard, { opacity: pressed ? 0.85 : 1 }]}
