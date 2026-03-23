@@ -309,6 +309,34 @@ router.get("/persona/:personaId", requireAuth, async (req, res) => {
   res.json(result);
 });
 
+router.get("/resumen-mes", requireAuth, async (req, res) => {
+  const fechaInicio = req.query.fechaInicio as string;
+  const fechaFin = req.query.fechaFin as string;
+  const pelotonId = req.query.pelotonId ? parseInt(req.query.pelotonId as string) : undefined;
+
+  if (!fechaInicio || !fechaFin) {
+    res.status(400).json({ error: "Bad Request", message: "fechaInicio y fechaFin son requeridos" });
+    return;
+  }
+
+  let asistencias = await db.select().from(asistenciasTable);
+  asistencias = asistencias.filter((a) => a.fecha >= fechaInicio && a.fecha <= fechaFin);
+  if (pelotonId) asistencias = asistencias.filter((a) => a.pelotonId === pelotonId);
+
+  const dayMap = new Map<string, { totalRegistros: number; presentes: number; ausentes: number }>();
+
+  for (const a of asistencias) {
+    const existing = dayMap.get(a.fecha) ?? { totalRegistros: 0, presentes: 0, ausentes: 0 };
+    existing.totalRegistros++;
+    if (a.estado === "presente") existing.presentes++;
+    else if (a.estado === "ausente" || a.estado === "inasistente") existing.ausentes++;
+    dayMap.set(a.fecha, existing);
+  }
+
+  const result = Array.from(dayMap.entries()).map(([fecha, data]) => ({ fecha, ...data }));
+  res.json(result);
+});
+
 router.get("/historial", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const fecha = req.query.fecha as string | undefined;

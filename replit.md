@@ -22,9 +22,19 @@ Full-stack mobile attendance management app for police training units (pelotones
 
 ### `artifacts/api-server` — Express REST API (port 8080, path `/api`)
 - Auth: JWT login/me endpoints
-- Routes: procesos, pnfs, pelotones, personas (with plan-búsqueda), asistencias (with dashboard + inasistentes), usuarios
+- Routes: procesos, pnfs, pelotones, personas, asistencias (with dashboard + inasistentes + historial + persona + resumen-mes), usuarios, configuracion (bloqueo toggle)
 - Role middleware: `requireAuth`, `requireSuperusuario`
 - Health check: `GET /api/healthz`
+
+### `artifacts/web` — React + Vite Web App (port 22333, path `/web/`)
+- Dark navy/gold theme matching the mobile app
+- Auth: JWT stored in localStorage, AuthContext
+- Navigation: Wouter router with collapsible sidebar
+- Pages: login, home (peloton cards), dashboard (stats), take-attendance, historial, historial-detalle
+- Admin pages: pelotones CRUD, personas CRUD, procesos CRUD, usuarios CRUD, calendario, bloqueo control
+- Role-based access: superusuario (full access) | estandar/colector (restricted)
+- Lock system: attendance lock/unlock affects colector role
+- API client: same-origin fetch using `${window.location.origin}/api`
 
 ### `artifacts/mobile` — Expo React Native App (port 18115, Expo domain)
 - Dark navy/gold law-enforcement theme
