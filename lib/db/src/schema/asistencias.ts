@@ -7,13 +7,15 @@ export const asistenciasTable = pgTable("asistencias", {
   personaId: integer("persona_id").notNull(),
   pelotonId: integer("peloton_id").notNull(),
   fecha: text("fecha").notNull(),
-  estado: text("estado").notNull().default("inasistente"),
+  estado: text("estado").notNull().default("ausente"),
   motivo: text("motivo"),
   usuarioId: integer("usuario_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertAsistenciaSchema = createInsertSchema(asistenciasTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAsistenciaSchema = createInsertSchema(asistenciasTable).omit(
+  { id: true, createdAt: true, updatedAt: true },
+);
 export type InsertAsistencia = z.infer<typeof insertAsistenciaSchema>;
 export type Asistencia = typeof asistenciasTable.$inferSelect;
