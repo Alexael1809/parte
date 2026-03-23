@@ -72,6 +72,9 @@ export default function DashboardScreen() {
   const totalGlobal = stats?.reduce((acc, s) => acc + s.total, 0) ?? 0;
   const totalPresentes = stats?.reduce((acc, s) => acc + s.presentes, 0) ?? 0;
   const totalAusentes = stats?.reduce((acc, s) => acc + s.ausentes, 0) ?? 0;
+  const totalReposos = stats?.reduce((acc, s) => acc + s.reposos, 0) ?? 0;
+  const totalReposesH = stats?.reduce((acc, s) => acc + s.reposesH, 0) ?? 0;
+  const totalReposesM = stats?.reduce((acc, s) => acc + s.reposesM, 0) ?? 0;
 
   function goToDetalle(s: PelotonStats, estado: string) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,6 +108,20 @@ export default function DashboardScreen() {
           <Text style={[styles.globalNum, { color: Colors.red }]}>{totalAusentes}</Text>
           <Text style={styles.globalLabel}>Ausentes</Text>
         </View>
+      </View>
+
+      {/* Reposo Highlight Card */}
+      <View style={styles.reposoCard}>
+        <View style={styles.reposoLeft}>
+          <View style={styles.reposoIconCircle}>
+            <Ionicons name="bed" size={22} color={Colors.orange} />
+          </View>
+          <View>
+            <Text style={styles.reposoTitle}>Personal en Reposo</Text>
+            <Text style={styles.reposoSub}>H: {totalReposesH} | M: {totalReposesM}</Text>
+          </View>
+        </View>
+        <Text style={styles.reposoNum}>{totalReposos}</Text>
       </View>
 
       <ScrollView
@@ -223,6 +240,31 @@ const styles = StyleSheet.create({
   },
   globalNum: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
   globalLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
+  reposoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: Colors.navyMid,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.orange + "50",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  reposoLeft: { flexDirection: "row", alignItems: "center", gap: 14 },
+  reposoIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.orange + "20",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reposoTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.white },
+  reposoSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.grayText, marginTop: 2 },
+  reposoNum: { fontFamily: "Inter_700Bold", fontSize: 32, color: Colors.orange },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, gap: 14 },
   sectionTitle: {
