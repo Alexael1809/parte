@@ -13,7 +13,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@/context/AuthContext";
 import { api, PelotonStats } from "@/lib/api";
 import Colors from "@/constants/colors";
 
@@ -21,15 +20,34 @@ function getTodayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
-function StatRow({ label, value, h, m, color }: { label: string; value: number; h: number; m: number; color: string }) {
-  return (
-    <View style={styles.statRow}>
+interface DrillRowProps {
+  label: string;
+  value: number;
+  h: number;
+  m: number;
+  color: string;
+  onPress?: () => void;
+}
+
+function DrillRow({ label, value, h, m, color, onPress }: DrillRowProps) {
+  const inner = (
+    <View style={styles.statRowInner}>
       <View style={[styles.statDot, { backgroundColor: color }]} />
       <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
+      <Text style={[styles.statValue, onPress ? { color } : {}]}>{value}</Text>
       <Text style={styles.statGender}>(H:{h} | M:{m})</Text>
+      {onPress && <Ionicons name="chevron-forward" size={13} color={color} style={{ marginLeft: 2 }} />}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+        {inner}
+      </Pressable>
+    );
+  }
+  return inner;
 }
 
 export default function DashboardScreen() {
@@ -53,7 +71,15 @@ export default function DashboardScreen() {
 
   const totalGlobal = stats?.reduce((acc, s) => acc + s.total, 0) ?? 0;
   const totalPresentes = stats?.reduce((acc, s) => acc + s.presentes, 0) ?? 0;
-  const totalInasistentes = stats?.reduce((acc, s) => acc + s.inasistentes, 0) ?? 0;
+  const totalAusentes = stats?.reduce((acc, s) => acc + s.ausentes, 0) ?? 0;
+
+  function goToDetalle(s: PelotonStats, estado: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: "/inasistentes/[pelotonId]",
+      params: { pelotonId: s.pelotonId, fecha, pelotonNombre: s.pelotonNombre, estado },
+    });
+  }
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -76,8 +102,8 @@ export default function DashboardScreen() {
           <Text style={styles.globalLabel}>Presentes</Text>
         </View>
         <View style={[styles.globalCard, { borderColor: Colors.red + "50" }]}>
-          <Text style={[styles.globalNum, { color: Colors.red }]}>{totalInasistentes}</Text>
-          <Text style={styles.globalLabel}>Inasistentes</Text>
+          <Text style={[styles.globalNum, { color: Colors.red }]}>{totalAusentes}</Text>
+          <Text style={styles.globalLabel}>Ausentes</Text>
         </View>
       </View>
 
@@ -111,23 +137,45 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.divider} />
               <View style={styles.statsContainer}>
-                <StatRow label="Presentes" value={s.presentes} h={s.presentesH} m={s.presentesM} color={Colors.green} />
-                <Pressable
-                  onPress={async () => {
-                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push({ pathname: "/inasistentes/[pelotonId]", params: { pelotonId: s.pelotonId, fecha, pelotonNombre: s.pelotonNombre } });
-                  }}
-                >
-                  <View style={styles.statRowPressable}>
-                    <View style={[styles.statDot, { backgroundColor: Colors.red }]} />
-                    <Text style={styles.statLabel}>Inasistentes</Text>
-                    <Text style={[styles.statValue, { color: Colors.red }]}>{s.inasistentes}</Text>
-                    <Text style={styles.statGender}>(H:{s.inasistentesH} | M:{s.inasistentesM})</Text>
-                    <Ionicons name="search" size={14} color={Colors.red} style={{ marginLeft: 4 }} />
-                  </View>
-                </Pressable>
-                <StatRow label="Comisiones" value={s.comisiones} h={s.comisionesH} m={s.comisionesM} color={Colors.blue} />
-                <StatRow label="Reposos" value={s.reposos} h={s.reposesH} m={s.reposesM} color={Colors.orange} />
+                <DrillRow
+                  label="Presentes"
+                  value={s.presentes}
+                  h={s.presentesH}
+                  m={s.presentesM}
+                  color={Colors.green}
+                />
+                <DrillRow
+                  label="Ausentes"
+                  value={s.ausentes}
+                  h={s.ausentesH}
+                  m={s.ausentesM}
+                  color={Colors.red}
+                  onPress={() => goToDetalle(s, "ausente")}
+                />
+                <DrillRow
+                  label="Comisiones"
+                  value={s.comisiones}
+                  h={s.comisionesH}
+                  m={s.comisionesM}
+                  color={Colors.blue}
+                  onPress={s.comisiones > 0 ? () => goToDetalle(s, "comision") : undefined}
+                />
+                <DrillRow
+                  label="Reposos"
+                  value={s.reposos}
+                  h={s.reposesH}
+                  m={s.reposesM}
+                  color={Colors.orange}
+                  onPress={s.reposos > 0 ? () => goToDetalle(s, "reposo") : undefined}
+                />
+                <DrillRow
+                  label="Pasantías"
+                  value={s.pasantias}
+                  h={s.pasantiasH}
+                  m={s.pasantiasM}
+                  color={Colors.purple}
+                  onPress={s.pasantias > 0 ? () => goToDetalle(s, "pasantia") : undefined}
+                />
               </View>
             </View>
           ))
@@ -173,17 +221,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.navyLight,
   },
-  globalNum: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 24,
-    color: Colors.white,
-  },
-  globalLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Colors.grayText,
-    marginTop: 2,
-  },
+  globalNum: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.white },
+  globalLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText, marginTop: 2 },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, gap: 14 },
   sectionTitle: {
@@ -220,13 +259,12 @@ const styles = StyleSheet.create({
   totalLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText },
   divider: { height: 1, backgroundColor: Colors.navyLight, marginHorizontal: 16 },
   statsContainer: { padding: 16, gap: 10 },
-  statRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  statRowPressable: { flexDirection: "row", alignItems: "center", gap: 8 },
+  statRowInner: { flexDirection: "row", alignItems: "center", gap: 8 },
   statDot: { width: 8, height: 8, borderRadius: 4 },
   statLabel: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.grayText, flex: 1 },
   statValue: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.white },
   statGender: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText },
-  skeletonCard: { height: 160, backgroundColor: Colors.navyLight, borderRadius: 16 },
+  skeletonCard: { height: 180, backgroundColor: Colors.navyLight, borderRadius: 16 },
   emptyState: { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.grayText },
 });

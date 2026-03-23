@@ -72,7 +72,7 @@ function RootLayoutNav() {
           headerStyle: { backgroundColor: Colors.navy },
           headerTintColor: Colors.white,
           headerTitleStyle: { fontFamily: "Inter_600SemiBold", color: Colors.white },
-          title: "Inasistentes",
+          title: "Ausentes",
           presentation: "card",
         }}
       />

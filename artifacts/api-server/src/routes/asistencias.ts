@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { asistenciasTable, personasTable, pelotonesTable, procesosTable, pnfsTable } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
-import { requireAuth, requireSuperusuario } from "../lib/auth.js";
+import { eq, and } from "drizzle-orm";
+import { requireAuth } from "../lib/auth.js";
 
 const router = Router();
 
@@ -119,11 +119,17 @@ router.get("/dashboard", requireAuth, async (req, res) => {
       allAsistencias.filter((a) => a.pelotonId === pel.id).map((a) => [a.personaId, a])
     );
 
-    const counts = { presentes: 0, presentesH: 0, presentesM: 0, inasistentes: 0, inasistentesH: 0, inasistentesM: 0, comisiones: 0, comisionesH: 0, comisionesM: 0, reposos: 0, reposesH: 0, reposesM: 0 };
+    const counts = {
+      presentes: 0, presentesH: 0, presentesM: 0,
+      ausentes: 0, ausentesH: 0, ausentesM: 0,
+      comisiones: 0, comisionesH: 0, comisionesM: 0,
+      reposos: 0, reposesH: 0, reposesM: 0,
+      pasantias: 0, pasantiasH: 0, pasantiasM: 0,
+    };
 
     for (const persona of personas) {
       const asistencia = asistenciaMap.get(persona.id);
-      const estado = asistencia?.estado ?? "inasistente";
+      const estado = asistencia?.estado ?? "ausente";
       const isH = persona.sexo === "M";
       const isM = persona.sexo === "F";
 
@@ -131,10 +137,10 @@ router.get("/dashboard", requireAuth, async (req, res) => {
         counts.presentes++;
         if (isH) counts.presentesH++;
         if (isM) counts.presentesM++;
-      } else if (estado === "inasistente") {
-        counts.inasistentes++;
-        if (isH) counts.inasistentesH++;
-        if (isM) counts.inasistentesM++;
+      } else if (estado === "ausente" || estado === "inasistente") {
+        counts.ausentes++;
+        if (isH) counts.ausentesH++;
+        if (isM) counts.ausentesM++;
       } else if (estado === "comision") {
         counts.comisiones++;
         if (isH) counts.comisionesH++;
@@ -143,6 +149,10 @@ router.get("/dashboard", requireAuth, async (req, res) => {
         counts.reposos++;
         if (isH) counts.reposesH++;
         if (isM) counts.reposesM++;
+      } else if (estado === "pasantia") {
+        counts.pasantias++;
+        if (isH) counts.pasantiasH++;
+        if (isM) counts.pasantiasM++;
       }
     }
 
@@ -197,8 +207,8 @@ router.get("/inasistentes", requireAuth, async (req, res) => {
 
     for (const persona of personas) {
       const asistencia = asistenciaMap.get(persona.id);
-      const estado = asistencia?.estado ?? "inasistente";
-      if (estado === "inasistente") {
+      const estado = asistencia?.estado ?? "ausente";
+      if (estado === "ausente" || estado === "inasistente") {
         result.push({
           personaId: persona.id,
           nombres: persona.nombres,
@@ -208,7 +218,7 @@ router.get("/inasistentes", requireAuth, async (req, res) => {
           pelotonNombre: pel.nombre,
           pnfNombre: pnf?.nombre ?? "",
           procesoNombre: proceso?.nombre ?? "",
-          estado,
+          estado: "ausente",
           motivo: asistencia?.motivo ?? null,
         });
       }

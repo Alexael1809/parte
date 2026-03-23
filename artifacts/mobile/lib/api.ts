@@ -36,7 +36,7 @@ export const api = {
   delete: <T>(path: string) => request<T>("DELETE", path),
 };
 
-export type Estado = "inasistente" | "presente" | "comision" | "reposo";
+export type Estado = "ausente" | "presente" | "comision" | "reposo" | "pasantia";
 
 export interface Persona {
   id: number;
@@ -110,18 +110,21 @@ export interface PelotonStats {
   presentes: number;
   presentesH: number;
   presentesM: number;
-  inasistentes: number;
-  inasistentesH: number;
-  inasistentesM: number;
+  ausentes: number;
+  ausentesH: number;
+  ausentesM: number;
   comisiones: number;
   comisionesH: number;
   comisionesM: number;
   reposos: number;
   reposesH: number;
   reposesM: number;
+  pasantias: number;
+  pasantiasH: number;
+  pasantiasM: number;
 }
 
-export interface InasistentePerson {
+export interface PersonaEstadoItem {
   personaId: number;
   nombres: string;
   apellidos: string;
@@ -134,13 +137,4 @@ export interface InasistentePerson {
   motivo: string | null;
 }
 
-export interface Usuario {
-  id: number;
-  email: string;
-  nombre: string;
-  rol: string;
-  pelotonId: number | null;
-  pelotonNombre: string | null;
-  activo: boolean;
-  createdAt: string;
-}
+export type InasistentePerson = PersonaEstadoItem;

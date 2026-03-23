@@ -12,7 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -20,11 +20,14 @@ import { api, Persona, Asistencia, Estado } from "@/lib/api";
 import Colors from "@/constants/colors";
 
 const ESTADOS: { key: Estado; label: string; icon: string }[] = [
-  { key: "inasistente", label: "Inasistente", icon: "close-circle" },
+  { key: "ausente", label: "Ausente", icon: "close-circle" },
   { key: "presente", label: "Presente", icon: "checkmark-circle" },
   { key: "comision", label: "Comisión", icon: "briefcase" },
   { key: "reposo", label: "Reposo", icon: "bed" },
+  { key: "pasantia", label: "Pasantía", icon: "school" },
 ];
+
+const ESTADOS_CON_MOTIVO: Estado[] = ["comision", "reposo", "pasantia"];
 
 function getInitials(nombres: string, apellidos: string) {
   return `${nombres[0] ?? ""}${apellidos[0] ?? ""}`.toUpperCase();
@@ -36,7 +39,7 @@ export default function AsistenciaScreen() {
   const qc = useQueryClient();
 
   const fechaHoy = new Date().toISOString().split("T")[0];
-  const [fecha, setFecha] = useState(fechaParam || fechaHoy);
+  const [fecha] = useState(fechaParam || fechaHoy);
   const [search, setSearch] = useState("");
   const [asistencias, setAsistencias] = useState<Record<number, { estado: Estado; motivo?: string }>>({});
   const [motivoModal, setMotivoModal] = useState<{ personaId: number; estado: Estado } | null>(null);
@@ -48,10 +51,10 @@ export default function AsistenciaScreen() {
     queryFn: () => api.get<Persona[]>(`/personas?pelotonId=${pelotonId}`),
   });
 
-  const { data: existingAsistencias } = useQuery({
+  useQuery({
     queryKey: ["asistencias", pelotonId, fecha],
     queryFn: () => api.get<Asistencia[]>(`/asistencias?pelotonId=${pelotonId}&fecha=${fecha}`),
-    onSuccess: (data) => {
+    onSuccess: (data: Asistencia[]) => {
       const map: Record<number, { estado: Estado; motivo?: string }> = {};
       for (const a of data) {
         map[a.personaId] = { estado: a.estado, motivo: a.motivo ?? undefined };
@@ -61,11 +64,11 @@ export default function AsistenciaScreen() {
   } as any);
 
   function getPersonaEstado(personaId: number): Estado {
-    return asistencias[personaId]?.estado ?? "inasistente";
+    return asistencias[personaId]?.estado ?? "ausente";
   }
 
   function setEstado(personaId: number, estado: Estado) {
-    if (estado === "comision" || estado === "reposo") {
+    if (ESTADOS_CON_MOTIVO.includes(estado)) {
       setMotivoModal({ personaId, estado });
       setMotivo(asistencias[personaId]?.motivo ?? "");
       return;
@@ -91,7 +94,7 @@ export default function AsistenciaScreen() {
     try {
       const registros = personas.map((p) => ({
         personaId: p.id,
-        estado: asistencias[p.id]?.estado ?? "inasistente",
+        estado: asistencias[p.id]?.estado ?? "ausente",
         motivo: asistencias[p.id]?.motivo ?? null,
       }));
       await api.post("/asistencias", { pelotonId: parseInt(pelotonId), fecha, registros });
@@ -115,16 +118,26 @@ export default function AsistenciaScreen() {
 
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const total = personas?.length ?? 0;
   const counts = {
     presentes: Object.values(asistencias).filter((a) => a.estado === "presente").length,
-    inasistentes: (personas?.length ?? 0) - Object.keys(asistencias).length + Object.values(asistencias).filter((a) => a.estado === "inasistente").length,
+    ausentes: total - Object.values(asistencias).filter((a) => a.estado !== "ausente").length,
     comisiones: Object.values(asistencias).filter((a) => a.estado === "comision").length,
     reposos: Object.values(asistencias).filter((a) => a.estado === "reposo").length,
+    pasantias: Object.values(asistencias).filter((a) => a.estado === "pasantia").length,
+  };
+
+  const getMotivoLabel = (estado: Estado) => {
+    if (estado === "comision") return "Comisión";
+    if (estado === "reposo") return "Reposo";
+    if (estado === "pasantia") return "Pasantía";
+    return "";
   };
 
   const renderItem = useCallback(({ item: persona }: { item: Persona }) => {
     const estado = getPersonaEstado(persona.id);
     const estadoColor = Colors.estados[estado];
+    const motivoGuardado = asistencias[persona.id]?.motivo;
     return (
       <View style={[styles.personaCard, { borderLeftColor: estadoColor.text, borderLeftWidth: 3 }]}>
         <Pressable
@@ -137,10 +150,16 @@ export default function AsistenciaScreen() {
           <View style={styles.personaInfo}>
             <Text style={styles.personaNombre}>{persona.nombres} {persona.apellidos[0]}.</Text>
             <Text style={styles.personaCI}>CI: {persona.ci}</Text>
-            <View style={styles.sexoBadge}>
-              <Ionicons name={persona.sexo === "M" ? "male" : "female"} size={10} color={Colors.grayText} />
-              <Text style={styles.sexoText}>{persona.sexo === "M" ? "Masculino" : "Femenino"}</Text>
-            </View>
+            {motivoGuardado && ESTADOS_CON_MOTIVO.includes(estado) ? (
+              <Text style={[styles.motivoText, { color: estadoColor.text }]} numberOfLines={1}>
+                {motivoGuardado}
+              </Text>
+            ) : (
+              <View style={styles.sexoBadge}>
+                <Ionicons name={persona.sexo === "M" ? "male" : "female"} size={10} color={Colors.grayText} />
+                <Text style={styles.sexoText}>{persona.sexo === "M" ? "Masculino" : "Femenino"}</Text>
+              </View>
+            )}
           </View>
         </Pressable>
 
@@ -154,7 +173,7 @@ export default function AsistenciaScreen() {
                 style={[styles.estadoBtn, isActive && { backgroundColor: col.bg }]}
                 onPress={() => setEstado(persona.id, key)}
               >
-                <Ionicons name={icon as any} size={20} color={isActive ? col.text : Colors.grayText + "60"} />
+                <Ionicons name={icon as any} size={18} color={isActive ? col.text : Colors.grayText + "50"} />
               </Pressable>
             );
           })}
@@ -169,10 +188,11 @@ export default function AsistenciaScreen() {
       <View style={styles.summaryBar}>
         {[
           { label: "P", count: counts.presentes, color: Colors.green },
-          { label: "I", count: counts.inasistentes, color: Colors.red },
+          { label: "A", count: counts.ausentes, color: Colors.red },
           { label: "C", count: counts.comisiones, color: Colors.blue },
           { label: "R", count: counts.reposos, color: Colors.orange },
-          { label: "Total", count: personas?.length ?? 0, color: Colors.white },
+          { label: "Pas", count: counts.pasantias, color: Colors.purple },
+          { label: "Tot", count: total, color: Colors.white },
         ].map(({ label, count, color }) => (
           <View key={label} style={styles.summaryItem}>
             <Text style={[styles.summaryNum, { color }]}>{count}</Text>
@@ -235,7 +255,7 @@ export default function AsistenciaScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setMotivoModal(null)}>
           <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>
-              Motivo de {motivoModal?.estado === "comision" ? "Comisión" : "Reposo"}
+              Motivo de {motivoModal ? getMotivoLabel(motivoModal.estado) : ""}
             </Text>
             <TextInput
               style={styles.modalInput}
@@ -267,15 +287,14 @@ const styles = StyleSheet.create({
   summaryBar: {
     flexDirection: "row",
     backgroundColor: Colors.navyMid,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    gap: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: Colors.navyLight,
   },
   summaryItem: { flex: 1, alignItems: "center" },
-  summaryNum: { fontFamily: "Inter_700Bold", fontSize: 18 },
-  summaryLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText },
+  summaryNum: { fontFamily: "Inter_700Bold", fontSize: 16 },
+  summaryLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: Colors.grayText },
   searchWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -318,6 +337,7 @@ const styles = StyleSheet.create({
   personaInfo: { flex: 1 },
   personaNombre: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.white },
   personaCI: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.grayText },
+  motivoText: { fontFamily: "Inter_500Medium", fontSize: 11, marginTop: 2 },
   sexoBadge: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 },
   sexoText: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.grayText },
   estadoButtons: {
@@ -326,12 +346,11 @@ const styles = StyleSheet.create({
     borderLeftColor: Colors.navyLight,
   },
   estadoBtn: {
-    width: 44,
+    width: 40,
     height: "100%" as any,
     minHeight: 68,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 0,
   },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyState: { alignItems: "center", paddingVertical: 60, gap: 12 },

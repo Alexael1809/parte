@@ -11,6 +11,7 @@ const RED = "#E53E3E";
 const GREEN = "#22C55E";
 const BLUE = "#3B82F6";
 const ORANGE = "#F97316";
+const PURPLE = "#A855F7";
 const SURFACE = "#152233";
 
 export default {
@@ -27,13 +28,15 @@ export default {
   green: GREEN,
   blue: BLUE,
   orange: ORANGE,
+  purple: PURPLE,
   surface: SURFACE,
 
   estados: {
-    inasistente: { bg: "#3D1A1A", text: RED, label: "Inasistente" },
+    ausente: { bg: "#3D1A1A", text: RED, label: "Ausente" },
     presente: { bg: "#0F2E1A", text: GREEN, label: "Presente" },
     comision: { bg: "#0F1E38", text: BLUE, label: "Comisión" },
     reposo: { bg: "#2D1C0A", text: ORANGE, label: "Reposo" },
+    pasantia: { bg: "#261A38", text: PURPLE, label: "Pasantía" },
   },
 
   light: {
