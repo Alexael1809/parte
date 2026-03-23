@@ -1,0 +1,31 @@
+Necesito implementar en mi aplicación web (gestión de asistencias y personal) un usuario especial con permisos absolutos que sea invisible para los administradores normales.
+La aplicación actualmente tiene roles de usuario (admin, editor, etc.) y una interfaz donde los administradores pueden gestionar usuarios, asistencias, estados y registros de personas.
+
+Requisitos:
+
+1. Usuario invisible:
+   · Este usuario no debe aparecer en ninguna lista de usuarios visible para los administradores (por ejemplo, en el panel de administración de usuarios, en búsquedas, en reportes, etc.).
+   · Internamente debe existir en la base de datos, pero cualquier consulta destinada a mostrar usuarios al administrador debe filtrarlo.
+2. Permisos totales (superpoderes):
+   · Puede eliminar personas de la base de datos (registros de empleados, alumnos, etc.).
+   · Puede modificar cualquier asistencia (cambiar estado presente/ausente, editar fechas, crear o eliminar registros de asistencia).
+   · Puede agregar ausencias, reposos o cualquier otro estado en cualquier fecha, incluso para fechas pasadas o futuras, sin restricciones.
+   · Puede cambiar el estado de cualquier persona (ejemplo: de "presente" a "ausente") en cualquier momento.
+   · En resumen, debe tener acceso completo a todas las operaciones de escritura/eliminación/modificación sobre las entidades principales: Personas, Asistencias, Estados, Ausencias, Reposos, etc.
+3. Contexto técnico:
+   · Backend: [especifica aquí tu stack, ej. Laravel, Node.js, Django, etc.]
+   · Base de datos: [SQL, MongoDB, etc.]
+   · Autenticación: [JWT, sesiones, etc.]
+   · Roles actuales: [describe los roles que ya existen]
+
+Lo que necesito:
+
+· Instrucciones concretas para crear este usuario en la base de datos con un flag especial (is_invisible o rol oculto).
+· Modificaciones en el backend para que al listar usuarios (API o consultas) se excluya automáticamente a este usuario.
+· Implementación de middleware o políticas de autorización que verifiquen si el usuario autenticado es este “usuario invisible” y le permitan todas las acciones sin restricciones adicionales.
+· Ajustes en el frontend (si aplica) para que las interfaces de administración no muestren ninguna referencia a este usuario.
+
+Consideraciones adicionales:
+
+· Asegurar que la seguridad no se vea comprometida: solo este usuario específico (por ID, email o rol especial) debe tener estos poderes.
+· Debe ser fácil de mantener y no interferir con el resto de la lógica de permisos.

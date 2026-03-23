@@ -186,10 +186,7 @@ export default function HistorialScreen() {
               <Pressable
                 onPress={async () => {
                   await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({
-                    pathname: "/admin/historial-detalle",
-                    params: { personaId: item.personaId },
-                  });
+                  router.push(`/admin/historial-detalle/${item.personaId}`);
                 }}
                 style={({ pressed }) => [
                   styles.itemCard,
