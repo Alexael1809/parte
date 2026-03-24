@@ -4,13 +4,21 @@ import Layout from "@/components/Layout";
 import { api, Usuario, Peloton } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
-import { Plus, Pencil, ToggleLeft, ToggleRight, Loader2, X, UserCheck, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, ToggleLeft, ToggleRight, Loader2, X, UserCheck, Eye, EyeOff, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface UserForm {
   nombre: string; email: string; password: string; rol: string; pelotonId: string;
+}
+
+function maskEmail(email: string): string {
+  const atIndex = email.indexOf("@");
+  if (atIndex === -1) return "*****";
+  const domain = email.slice(atIndex + 1);
+  const domainLabel = domain.split(".")[0];
+  return `*****@${domainLabel}*****`;
 }
 
 export default function UsuariosPage() {
@@ -69,35 +77,50 @@ export default function UsuariosPage() {
         {isLoading && <div className="flex justify-center py-12"><Loader2 size={24} className="animate-spin text-amber-400" /></div>}
 
         <div className="space-y-2">
-          {usuarios?.map((u) => (
-            <div key={u.id} className={`bg-[#1B2B3D] border border-white/10 rounded-xl p-4 flex items-center justify-between gap-3 ${!u.activo ? "opacity-60" : ""}`}>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${u.rol === "superusuario" ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
-                  <UserCheck size={15} className={u.rol === "superusuario" ? "text-amber-400" : "text-blue-400"} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-white font-medium text-sm truncate">{u.nombre}</p>
-                  <p className="text-gray-500 text-xs truncate">{u.email}</p>
-                  <div className="flex gap-2 mt-0.5">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${u.rol === "superusuario" ? "bg-amber-500/10 text-amber-400" : "bg-blue-500/10 text-blue-400"}`}>
-                      {rolLabel[u.rol] ?? u.rol}
-                    </span>
-                    {u.pelotonNombre && <span className="text-xs text-gray-500">{u.pelotonNombre}</span>}
-                    {!u.activo && <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">Inactivo</span>}
+          {usuarios?.map((u) => {
+            const isAdmin = u.rol === "superusuario";
+            return (
+              <div key={u.id} className={`bg-[#1B2B3D] border border-white/10 rounded-xl p-4 flex items-center justify-between gap-3 ${!u.activo ? "opacity-60" : ""}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${isAdmin ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
+                    <UserCheck size={15} className={isAdmin ? "text-amber-400" : "text-blue-400"} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-medium text-sm truncate">
+                      {isAdmin ? "Administrador" : u.nombre}
+                    </p>
+                    <p className={`text-xs truncate ${isAdmin ? "text-amber-400/60 font-mono tracking-wide" : "text-gray-500"}`}>
+                      {isAdmin ? maskEmail(u.email) : u.email}
+                    </p>
+                    <div className="flex gap-2 mt-0.5">
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${isAdmin ? "bg-amber-500/10 text-amber-400" : "bg-blue-500/10 text-blue-400"}`}>
+                        {rolLabel[u.rol] ?? u.rol}
+                      </span>
+                      {u.pelotonNombre && <span className="text-xs text-gray-500">{u.pelotonNombre}</span>}
+                      {!u.activo && <span className="text-xs px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">Inactivo</span>}
+                    </div>
                   </div>
                 </div>
+                {!isAdmin ? (
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(u)} className="text-gray-400 hover:text-white h-8 w-8 p-0">
+                      <Pencil size={13} />
+                    </Button>
+                    <button
+                      onClick={() => toggleActivoMutation.mutate({ id: u.id, activo: !u.activo })}
+                      className={`h-8 w-8 flex items-center justify-center rounded ${u.activo ? "text-green-400 hover:text-green-300" : "text-gray-500 hover:text-gray-300"} transition-colors`}
+                    >
+                      {u.activo ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0">
+                    <ShieldOff size={15} className="text-amber-400/30" />
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => openEdit(u)} className="text-gray-400 hover:text-white h-8 w-8 p-0"><Pencil size={13} /></Button>
-                <button
-                  onClick={() => toggleActivoMutation.mutate({ id: u.id, activo: !u.activo })}
-                  className={`h-8 w-8 flex items-center justify-center rounded ${u.activo ? "text-green-400 hover:text-green-300" : "text-gray-500 hover:text-gray-300"} transition-colors`}
-                >
-                  {u.activo ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {modal.open && (

@@ -26,7 +26,9 @@ export default function AsistenciaPage() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [fecha] = useState(searchFecha);
 
-  const isReadOnly = isSuperusuario() || user?.isInvisible === true;
+  const isInvisible = user?.isInvisible === true;
+  const isAdminReadOnly = isSuperusuario() && !isInvisible;
+  const isColector = user?.rol === "estandar" && !isInvisible;
 
   const { data: bloqueoData } = useQuery({
     queryKey: ["bloqueo"],
@@ -64,9 +66,12 @@ export default function AsistenciaPage() {
     setDataLoaded(true);
   }, [personas, asistenciasHoy, dataLoaded]);
 
+  const isBloqueadoColector = (bloqueoData?.bloqueado ?? false) && isColector;
+  const canEdit = !isAdminReadOnly && !isBloqueadoColector;
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!personas || isReadOnly) return;
+      if (!personas || !canEdit) return;
       const registros = personas.map((p) => ({
         personaId: p.id,
         estado: rows[p.id]?.estado ?? "presente",
@@ -77,39 +82,18 @@ export default function AsistenciaPage() {
     onSuccess: () => {
       setGuardado(true);
       queryClient.invalidateQueries({ queryKey: ["asistencias-hoy", pelotonId, fecha] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setTimeout(() => setGuardado(false), 3000);
     },
   });
 
-  const isColector = user?.rol === "estandar" && !user.isInvisible;
-  const bloqueado = (bloqueoData?.bloqueado ?? false) && isColector;
-
-  if (bloqueado) {
-    return (
-      <Layout>
-        <div className="p-6 max-w-2xl mx-auto">
-          <button onClick={() => navigate("/")} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm mb-4">
-            <ArrowLeft size={14} /> Volver
-          </button>
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-            <Lock size={20} className="text-red-400 flex-shrink-0" />
-            <div>
-              <p className="text-white font-medium">Asistencia bloqueada</p>
-              <p className="text-red-300 text-sm">El administrador ha bloqueado la toma de asistencia.</p>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   function setEstado(personaId: number, estado: Estado) {
-    if (isReadOnly) return;
+    if (!canEdit) return;
     setRows((prev) => ({ ...prev, [personaId]: { ...prev[personaId], estado, motivo: "" } }));
   }
 
   function setMotivo(personaId: number, motivo: string) {
-    if (isReadOnly) return;
+    if (!canEdit) return;
     setRows((prev) => ({ ...prev, [personaId]: { ...prev[personaId], motivo } }));
   }
 
@@ -121,14 +105,14 @@ export default function AsistenciaPage() {
     <Layout>
       <div className="p-4 md:p-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate("/")} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm flex-shrink-0">
+          <button onClick={() => navigate(-1 as unknown as string)} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm flex-shrink-0">
             <ArrowLeft size={14} /> Volver
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white truncate">{pelotonInfo?.nombre ?? "Pelotón"}</h1>
-            <p className="text-gray-400 text-sm">{fecha}{fecha !== today ? " (histórico)" : ""}</p>
+            <p className="text-gray-400 text-sm">{fecha}{fecha !== today ? " · histórico" : ""}</p>
           </div>
-          {!isReadOnly && (
+          {canEdit && (
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || !personas?.length || isLoading}
@@ -145,10 +129,19 @@ export default function AsistenciaPage() {
           )}
         </div>
 
-        {isReadOnly && (
+        {/* Read-only banner — admin */}
+        {isAdminReadOnly && (
           <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <Eye size={14} className="text-blue-400 flex-shrink-0" />
-            <p className="text-blue-300 text-sm">Modo visualización. Solo el colector asignado puede modificar la asistencia.</p>
+            <p className="text-blue-300 text-sm">Modo visualización — Solo el colector asignado o el sistema puede modificar la asistencia.</p>
+          </div>
+        )}
+
+        {/* Read-only banner — colector blocked */}
+        {isBloqueadoColector && (
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <Lock size={14} className="text-orange-400 flex-shrink-0" />
+            <p className="text-orange-300 text-sm">Modo visualización — La toma de asistencia está temporalmente bloqueada por el administrador.</p>
           </div>
         )}
 
@@ -159,10 +152,10 @@ export default function AsistenciaPage() {
           </div>
         )}
 
-        {!isReadOnly && asistenciasHoy && asistenciasHoy.length > 0 && (
+        {canEdit && asistenciasHoy && asistenciasHoy.length > 0 && (
           <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
             <CheckCircle size={14} className="text-green-400" />
-            <p className="text-green-300 text-sm">Asistencia ya registrada hoy. Puedes modificarla.</p>
+            <p className="text-green-300 text-sm">Asistencia ya registrada. Puedes modificarla.</p>
           </div>
         )}
 
@@ -184,9 +177,8 @@ export default function AsistenciaPage() {
               <div className="space-y-2">
                 {list.map((persona) => {
                   const row = rows[persona.id] ?? { estado: "presente" as Estado, motivo: "" };
-                  const cfg = ESTADO_CONFIG[row.estado];
                   return (
-                    <div key={persona.id} className={`bg-[#1B2B3D] border border-white/10 rounded-xl p-3 ${isReadOnly ? "opacity-90" : ""}`}>
+                    <div key={persona.id} className="bg-[#1B2B3D] border border-white/10 rounded-xl p-3">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium text-sm">{persona.apellidos}, {persona.nombres}</p>
@@ -197,7 +189,7 @@ export default function AsistenciaPage() {
                             <button
                               key={estado}
                               onClick={() => setEstado(persona.id, estado)}
-                              disabled={isReadOnly}
+                              disabled={!canEdit}
                               className="px-2 py-0.5 rounded text-xs font-medium transition-all border disabled:cursor-default"
                               style={{
                                 backgroundColor: row.estado === estado ? ESTADO_CONFIG[estado]?.bg : "transparent",
@@ -211,9 +203,9 @@ export default function AsistenciaPage() {
                         </div>
                       </div>
                       {REQUIRE_MOTIVO.includes(row.estado) && row.motivo && (
-                        <p className="mt-1.5 text-xs text-gray-400 pl-0.5">{row.motivo}</p>
+                        <p className="mt-1.5 text-xs text-gray-400 italic pl-0.5">{row.motivo}</p>
                       )}
-                      {!isReadOnly && REQUIRE_MOTIVO.includes(row.estado) && (
+                      {canEdit && REQUIRE_MOTIVO.includes(row.estado) && (
                         <input
                           type="text"
                           placeholder="Motivo..."
