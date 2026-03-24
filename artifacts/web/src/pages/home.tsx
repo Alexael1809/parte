@@ -38,11 +38,9 @@ export default function HomePage() {
         </div>
 
         {bloqueadoParaUser && (
-          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-            <Lock size={14} className="text-red-400 flex-shrink-0" />
-            <p className="text-red-300 text-sm">
-              La toma de asistencia está bloqueada. Contacte al administrador.
-            </p>
+          <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <Lock size={14} className="text-orange-400 flex-shrink-0" />
+            <p className="text-orange-300 text-sm">Modificación de asistencia desactivada temporalmente. Puedes entrar a consultar los registros.</p>
           </div>
         )}
 
@@ -70,9 +68,8 @@ export default function HomePage() {
           {displayPelotones?.map((peloton) => (
             <button
               key={peloton.id}
-              onClick={() => !bloqueadoParaUser && navigate(`/asistencia/${peloton.id}`)}
-              disabled={bloqueadoParaUser}
-              className="w-full text-left bg-[#1B2B3D] hover:bg-[#243447] border border-white/10 rounded-xl p-4 transition-colors group disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={() => navigate(`/asistencia/${peloton.id}`)}
+              className="w-full text-left bg-[#1B2B3D] hover:bg-[#243447] border border-white/10 rounded-xl p-4 transition-colors group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
