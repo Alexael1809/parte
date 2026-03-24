@@ -17,10 +17,14 @@ export default function AsistenciaPage() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split("T")[0];
+  const searchFecha = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("fecha") ?? today
+    : today;
 
   const [rows, setRows] = useState<Record<number, { estado: Estado; motivo: string }>>({});
   const [guardado, setGuardado] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [fecha] = useState(searchFecha);
 
   const isReadOnly = isSuperusuario() || user?.isInvisible === true;
 
@@ -36,8 +40,8 @@ export default function AsistenciaPage() {
   });
 
   const { data: asistenciasHoy, isLoading: loadingAsistencias } = useQuery({
-    queryKey: ["asistencias-hoy", pelotonId, today],
-    queryFn: () => api.get<Asistencia[]>(`/asistencias?pelotonId=${pelotonId}&fecha=${today}`),
+    queryKey: ["asistencias-hoy", pelotonId, fecha],
+    queryFn: () => api.get<Asistencia[]>(`/asistencias?pelotonId=${pelotonId}&fecha=${fecha}`),
     enabled: !!pelotonId,
   });
 
@@ -68,11 +72,11 @@ export default function AsistenciaPage() {
         estado: rows[p.id]?.estado ?? "presente",
         motivo: rows[p.id]?.motivo || null,
       }));
-      return api.post(`/asistencias`, { pelotonId, fecha: today, registros });
+      return api.post(`/asistencias`, { pelotonId, fecha, registros });
     },
     onSuccess: () => {
       setGuardado(true);
-      queryClient.invalidateQueries({ queryKey: ["asistencias-hoy", pelotonId] });
+      queryClient.invalidateQueries({ queryKey: ["asistencias-hoy", pelotonId, fecha] });
       setTimeout(() => setGuardado(false), 3000);
     },
   });
@@ -122,7 +126,7 @@ export default function AsistenciaPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-white truncate">{pelotonInfo?.nombre ?? "Pelotón"}</h1>
-            <p className="text-gray-400 text-sm">{today}</p>
+            <p className="text-gray-400 text-sm">{fecha}{fecha !== today ? " (histórico)" : ""}</p>
           </div>
           {!isReadOnly && (
             <Button

@@ -93,7 +93,10 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
         }]
       : []),
     ...(user?.isInvisible
-      ? [{ label: "Calendario", href: "/admin/asistencias", icon: <Calendar size={16} /> }]
+      ? [
+          ...(!isSuperusuario() ? [{ label: "Dashboard", href: "/dashboard", icon: <BarChart2 size={16} /> }] : []),
+          { label: "Calendario", href: "/admin/asistencias", icon: <Calendar size={16} /> },
+        ]
       : []),
   ];
 
