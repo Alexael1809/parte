@@ -47,26 +47,60 @@ export default function ColectorDashboardPage() {
     const dateFormatted = new Date(fecha + "T12:00:00").toLocaleDateString("es-VE", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
+    const hora = new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
+    const SEP = "━━━━━━━━━━━━━━━━━━━━━━━━━━";
+
+    function pct(val: number, total: number) {
+      return total > 0 ? Math.round((val / total) * 100) : 0;
+    }
+    function ef(n: number) { return n === 1 ? "efectivo" : "efectivos"; }
+    function fila(emoji: string, label: string, v: number, h: number, m: number, total: number) {
+      const p = pct(v, total);
+      const base = `${emoji} *${label}:* ${v} ${ef(v)}  _(${p}%)_`;
+      return v > 0 ? `${base}\n   › Hombres: ${h}  |  Mujeres: ${m}` : base;
+    }
+
+    const s = stats;
+    const sH = s.presentesH + s.ausentesH + s.comisionesH + s.permisosH + s.pasantiasH + (s.reposesH ?? 0);
+    const sM = s.presentesM + s.ausentesM + s.comisionesM + s.permisosM + s.pasantiasM + (s.reposesM ?? 0);
+    const idx = pct(s.presentes, s.total);
 
     const lines = [
-      `📊 *Dashboard - ${stats.pelotonNombre}*`,
+      `🏛️ *GUARDIA POLICIAL ACTIVA*`,
+      `📊 *REPORTE DE ASISTENCIA*`,
+      ``,
+      `🏢 *Pelotón: ${s.pelotonNombre}*`,
+      `🎓 PNF: ${s.pnfNombre}`,
+      `📋 Proceso: ${s.procesoNombre}`,
       `📅 ${dateFormatted}`,
-      `🏫 ${stats.pnfNombre} | ${stats.procesoNombre}`,
+      `🕐 Hora de emisión: ${hora}`,
       ``,
-      `👥 *Total Personal: ${stats.total}*`,
+      SEP,
+      `👥 *PERSONAL: ${s.total} ${ef(s.total)}*`,
+      `   👨 Masculino: ${sH}   👩 Femenino: ${sM}`,
+      SEP,
       ``,
-      ...rows.map((r) => {
-        const emoji: Record<string, string> = {
-          presente: "✅", ausente: "❌", comision: "🔵", permiso: "🔹", pasantia: "🟣", reposo: "🟠",
-        };
-        return `${emoji[r.key] ?? "•"} *${r.label}:* ${r.total} _(H:${r.h} M:${r.m})_`;
-      }),
+      fila("✅", "Presentes",  s.presentes,  s.presentesH,  s.presentesM,  s.total),
       ``,
-      `_Generado vía Sistema de Asistencia_`,
+      fila("❌", "Ausentes",   s.ausentes,   s.ausentesH,   s.ausentesM,   s.total),
+      ``,
+      fila("🔵", "Comisión",   s.comisiones, s.comisionesH, s.comisionesM, s.total),
+      ``,
+      fila("🔹", "Permiso",    s.permisos,   s.permisosH,   s.permisosM,   s.total),
+      ``,
+      fila("🟣", "Pasantía",   s.pasantias,  s.pasantiasH,  s.pasantiasM,  s.total),
+      ``,
+      fila("🟠", "Reposo",     s.reposos,    s.reposesH ?? 0, s.reposesM ?? 0, s.total),
+      ``,
+      SEP,
+      `📈 *Índice de Asistencia: ${idx}%*`,
+      SEP,
+      ``,
+      `_Sistema de Gestión de Asistencia_`,
+      `_Guardia Policial Activa (GPA)_`,
     ];
 
-    const text = lines.join("\n");
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   }
 
   if (!pelotonId) {

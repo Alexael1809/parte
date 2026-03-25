@@ -23,65 +23,127 @@ function buildWhatsAppText(stats: PelotonStats[], fecha: string, scope: "all" | 
   const dateFormatted = new Date(fecha + "T12:00:00").toLocaleDateString("es-VE", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
+  const hora = new Date().toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
+  const SEP = "━━━━━━━━━━━━━━━━━━━━━━━━━━";
+
+  function pct(val: number, total: number) {
+    return total > 0 ? Math.round((val / total) * 100) : 0;
+  }
+  function ef(n: number) { return n === 1 ? "efectivo" : "efectivos"; }
+  function fila(emoji: string, label: string, v: number, h: number, m: number, total: number) {
+    const p = pct(v, total);
+    const base = `${emoji} *${label}:* ${v} ${ef(v)}  _(${p}%)_`;
+    return v > 0 ? `${base}\n   › Hombres: ${h}  |  Mujeres: ${m}` : base;
+  }
 
   if (scope === "all") {
-    const totals = stats.reduce((acc, s) => ({
-      total:     acc.total     + s.total,
-      presentes: acc.presentes + s.presentes, presentesH: acc.presentesH + s.presentesH, presentesM: acc.presentesM + s.presentesM,
-      ausentes:  acc.ausentes  + s.ausentes,  ausentesH:  acc.ausentesH  + s.ausentesH,  ausentesM:  acc.ausentesM  + s.ausentesM,
-      comisiones:acc.comisiones+ s.comisiones,comisionesH:acc.comisionesH+ s.comisionesH,comisionesM:acc.comisionesM+ s.comisionesM,
-      permisos:  acc.permisos  + s.permisos,  permisosH:  acc.permisosH  + s.permisosH,  permisosM:  acc.permisosM  + s.permisosM,
-      pasantias: acc.pasantias + s.pasantias, pasantiasH: acc.pasantiasH + s.pasantiasH, pasantiasM: acc.pasantiasM + s.pasantiasM,
-      reposos:   acc.reposos   + s.reposos,   reposesH:   (acc.reposesH ?? 0) + (s.reposesH ?? 0), reposesM: (acc.reposesM ?? 0) + (s.reposesM ?? 0),
-    }), {
-      total:0, presentes:0, presentesH:0, presentesM:0,
-      ausentes:0, ausentesH:0, ausentesM:0,
-      comisiones:0, comisionesH:0, comisionesM:0,
-      permisos:0, permisosH:0, permisosM:0,
-      pasantias:0, pasantiasH:0, pasantiasM:0,
-      reposos:0, reposesH:0, reposesM:0,
-    } as PelotonStats & { total: number });
+    const T = stats.reduce((acc, s) => ({
+      total:      acc.total      + s.total,
+      presentes:  acc.presentes  + s.presentes,  presentesH: acc.presentesH + s.presentesH,   presentesM: acc.presentesM + s.presentesM,
+      ausentes:   acc.ausentes   + s.ausentes,   ausentesH:  acc.ausentesH  + s.ausentesH,    ausentesM:  acc.ausentesM  + s.ausentesM,
+      comisiones: acc.comisiones + s.comisiones, comisionesH:acc.comisionesH+ s.comisionesH,  comisionesM:acc.comisionesM+ s.comisionesM,
+      permisos:   acc.permisos   + s.permisos,   permisosH:  acc.permisosH  + s.permisosH,    permisosM:  acc.permisosM  + s.permisosM,
+      pasantias:  acc.pasantias  + s.pasantias,  pasantiasH: acc.pasantiasH + s.pasantiasH,   pasantiasM: acc.pasantiasM + s.pasantiasM,
+      reposos:    acc.reposos    + s.reposos,     reposesH:  (acc.reposesH ?? 0) + (s.reposesH ?? 0), reposesM: (acc.reposesM ?? 0) + (s.reposesM ?? 0),
+    }), { total:0, presentes:0, presentesH:0, presentesM:0, ausentes:0, ausentesH:0, ausentesM:0, comisiones:0, comisionesH:0, comisionesM:0, permisos:0, permisosH:0, permisosM:0, pasantias:0, pasantiasH:0, pasantiasM:0, reposos:0, reposesH:0, reposesM:0 } as PelotonStats);
 
-    const procesoNombre = stats[0]?.procesoNombre ?? "Proceso";
+    const tH = T.presentesH + T.ausentesH + T.comisionesH + T.permisosH + T.pasantiasH + (T.reposesH ?? 0);
+    const tM = T.presentesM + T.ausentesM + T.comisionesM + T.permisosM + T.pasantiasM + (T.reposesM ?? 0);
+    const idxA = pct(T.presentes, T.total);
+    const proceso = stats[0]?.procesoNombre ?? "—";
 
-    const lines = [
-      `📊 *Dashboard General — ${procesoNombre}*`,
+    const pelotLines = stats.map((s) => {
+      const sH = s.presentesH + s.ausentesH + s.comisionesH + s.permisosH + s.pasantiasH + (s.reposesH ?? 0);
+      const sM = s.presentesM + s.ausentesM + s.comisionesM + s.permisosM + s.pasantiasM + (s.reposesM ?? 0);
+      const sIdx = pct(s.presentes, s.total);
+      let st = `  ✅ ${s.presentes}`;
+      if (s.ausentes   > 0) st += `  ❌ ${s.ausentes}`;
+      if (s.comisiones > 0) st += `  🔵 ${s.comisiones}`;
+      if (s.permisos   > 0) st += `  🔹 ${s.permisos}`;
+      if (s.pasantias  > 0) st += `  🟣 ${s.pasantias}`;
+      if (s.reposos    > 0) st += `  🟠 ${s.reposos}`;
+      return `▸ *${s.pelotonNombre}* — ${s.total} ${ef(s.total)}\n${st}\n  👨 H:${sH}  👩 M:${sM}  |  📈 Asist: ${sIdx}%`;
+    });
+
+    return [
+      `🏛️ *GUARDIA POLICIAL ACTIVA*`,
+      `📊 *REPORTE GENERAL DE ASISTENCIA*`,
+      ``,
       `📅 ${dateFormatted}`,
+      `🎓 Proceso: ${proceso}`,
+      `🕐 Hora de emisión: ${hora}`,
       ``,
-      `👥 *Total General: ${totals.total}*`,
+      SEP,
+      `👥 *FUERZA TOTAL: ${T.total} ${ef(T.total)}*`,
+      `   👨 Masculino: ${tH}   👩 Femenino: ${tM}`,
+      SEP,
       ``,
-      ...STAT_ROWS.map((r) => {
-        const d = r.get(totals as unknown as PelotonStats);
-        return `${r.emoji} *${r.label}:* ${d.v} _(H:${d.h} M:${d.m})_`;
-      }),
+      fila("✅", "Presentes",  T.presentes,  T.presentesH,  T.presentesM,  T.total),
       ``,
-      `━━━ Desglose por Pelotón ━━━`,
+      fila("❌", "Ausentes",   T.ausentes,   T.ausentesH,   T.ausentesM,   T.total),
       ``,
-      ...stats.map((s) =>
-        `📌 *${s.pelotonNombre}* — ${s.total} pax\n   ✅${s.presentes} ❌${s.ausentes} 🔵${s.comisiones} 🔹${s.permisos} 🟣${s.pasantias} 🟠${s.reposos}`
-      ),
+      fila("🔵", "Comisión",   T.comisiones, T.comisionesH, T.comisionesM, T.total),
       ``,
-      `_Generado vía Sistema de Asistencia_`,
-    ];
-    return lines.join("\n");
+      fila("🔹", "Permiso",    T.permisos,   T.permisosH,   T.permisosM,   T.total),
+      ``,
+      fila("🟣", "Pasantía",   T.pasantias,  T.pasantiasH,  T.pasantiasM,  T.total),
+      ``,
+      fila("🟠", "Reposo",     T.reposos,    T.reposesH ?? 0, T.reposesM ?? 0, T.total),
+      ``,
+      `📈 *Índice de Asistencia General: ${idxA}%*`,
+      ``,
+      SEP,
+      `📋 *DESGLOSE POR PELOTÓN* (${stats.length})`,
+      SEP,
+      ``,
+      ...pelotLines.map((l, i) => i < pelotLines.length - 1 ? l + "\n" : l),
+      ``,
+      SEP,
+      `_Sistema de Gestión de Asistencia_`,
+      `_Guardia Policial Activa (GPA)_`,
+    ].join("\n");
+
   } else {
     const s = stats.find((x) => x.pelotonId === scope);
     if (!s) return "";
-    const lines = [
-      `📊 *Dashboard — ${s.pelotonNombre}*`,
+    const sH = s.presentesH + s.ausentesH + s.comisionesH + s.permisosH + s.pasantiasH + (s.reposesH ?? 0);
+    const sM = s.presentesM + s.ausentesM + s.comisionesM + s.permisosM + s.pasantiasM + (s.reposesM ?? 0);
+    const idx = pct(s.presentes, s.total);
+
+    return [
+      `🏛️ *GUARDIA POLICIAL ACTIVA*`,
+      `📊 *REPORTE DE ASISTENCIA*`,
+      ``,
+      `🏢 *Pelotón: ${s.pelotonNombre}*`,
+      `🎓 PNF: ${s.pnfNombre}`,
+      `📋 Proceso: ${s.procesoNombre}`,
       `📅 ${dateFormatted}`,
-      `🏫 ${s.pnfNombre} | ${s.procesoNombre}`,
+      `🕐 Hora de emisión: ${hora}`,
       ``,
-      `👥 *Total Personal: ${s.total}*`,
+      SEP,
+      `👥 *PERSONAL: ${s.total} ${ef(s.total)}*`,
+      `   👨 Masculino: ${sH}   👩 Femenino: ${sM}`,
+      SEP,
       ``,
-      ...STAT_ROWS.map((r) => {
-        const d = r.get(s);
-        return `${r.emoji} *${r.label}:* ${d.v} _(H:${d.h} M:${d.m})_`;
-      }),
+      fila("✅", "Presentes",  s.presentes,  s.presentesH,  s.presentesM,  s.total),
       ``,
-      `_Generado vía Sistema de Asistencia_`,
-    ];
-    return lines.join("\n");
+      fila("❌", "Ausentes",   s.ausentes,   s.ausentesH,   s.ausentesM,   s.total),
+      ``,
+      fila("🔵", "Comisión",   s.comisiones, s.comisionesH, s.comisionesM, s.total),
+      ``,
+      fila("🔹", "Permiso",    s.permisos,   s.permisosH,   s.permisosM,   s.total),
+      ``,
+      fila("🟣", "Pasantía",   s.pasantias,  s.pasantiasH,  s.pasantiasM,  s.total),
+      ``,
+      fila("🟠", "Reposo",     s.reposos,    s.reposesH ?? 0, s.reposesM ?? 0, s.total),
+      ``,
+      SEP,
+      `📈 *Índice de Asistencia: ${idx}%*`,
+      SEP,
+      ``,
+      `_Sistema de Gestión de Asistencia_`,
+      `_Guardia Policial Activa (GPA)_`,
+    ].join("\n");
   }
 }
 
