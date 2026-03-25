@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import Layout from "@/components/Layout";
 import { api, Persona, Asistencia, Estado, ESTADO_CONFIG } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,6 @@ export default function AsistenciaPage() {
   const params = useParams<{ pelotonId: string }>();
   const pelotonId = parseInt(params.pelotonId ?? "0");
   const { user, isSuperusuario } = useAuth();
-  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split("T")[0];
   const searchFecha = typeof window !== "undefined"
@@ -105,7 +104,7 @@ export default function AsistenciaPage() {
     <Layout>
       <div className="p-4 md:p-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate(-1 as unknown as string)} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm flex-shrink-0">
+          <button onClick={() => window.history.back()} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm flex-shrink-0">
             <ArrowLeft size={14} /> Volver
           </button>
           <div className="flex-1 min-w-0">
