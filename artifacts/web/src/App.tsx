@@ -120,12 +120,20 @@ function Router() {
   );
 }
 
+function detectBase(): string {
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  if (segments.length > 0) {
+    return `/${segments[0]}`;
+  }
+  return import.meta.env.BASE_URL.replace(/\/$/, "");
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <WouterRouter base={detectBase()}>
             <Router />
           </WouterRouter>
           <Toaster />

@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/web/" ]
+paths = [ "/web/", "/web-1/" ]
 localPort = 22333
 
 [services.development]
