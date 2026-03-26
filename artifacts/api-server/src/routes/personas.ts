@@ -6,10 +6,46 @@ import { requireAuth, requireSuperusuario, allowInvisibleUser } from "../lib/aut
 
 const router = Router();
 
-// Normaliza texto: minúsculas + sin tildes para comparación flexible
+// Normaliza texto: minúsculas + sin tildes + sin separadores para comparación flexible
 function norm(s: string): string {
   return s.toLowerCase().trim()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// Normaliza separadores: - _ / \ . todos se convierten en espacio
+function normSep(s: string): string {
+  return norm(s).replace(/[-_\/\\\.]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// Convierte números romanos a arábigos (para el nombre del proceso)
+function deRoman(s: string): string {
+  return s
+    .replace(/\bviii\b/g, "8").replace(/\bvii\b/g, "7").replace(/\bvi\b/g, "6")
+    .replace(/\biv\b/g, "4").replace(/\biii\b/g, "3").replace(/\bii\b/g, "2")
+    .replace(/\bviii\b/g, "8").replace(/\bi\b/g, "1").replace(/\bv\b/g, "5");
+}
+
+// Matching flexible de proceso: prueba múltiples estrategias
+function matchProceso(dbNombre: string, searchNombre: string): boolean {
+  const dbN = normSep(dbNombre);
+  const srN = normSep(searchNombre);
+
+  if (dbN === srN) return true;
+
+  const dbS = dbN.replace(/^proceso /, "").trim();
+  const srS = srN.replace(/^proceso /, "").trim();
+
+  if (dbS === srS) return true;
+  if (dbS === srN || dbN === srS) return true;
+
+  // Numeros romanos vs arábigos (I-2025 == 1-2025, II-2025 == 2-2025)
+  if (deRoman(dbS) === deRoman(srS)) return true;
+
+  // Coincidencia por contenido: si el término de búsqueda está dentro del nombre DB o viceversa
+  if (srS.length >= 3 && (dbN.includes(srS) || dbS.includes(srS))) return true;
+  if (dbS.length >= 3 && (srN.includes(dbS) || srS.includes(dbS))) return true;
+
+  return false;
 }
 
 async function buildPersonaResponse(persona: typeof personasTable.$inferSelect) {
@@ -179,18 +215,14 @@ router.post("/importar", requireSuperusuario, async (req, res) => {
       continue;
     }
 
-    // Proceso: sin tildes, también se prueba quitando "Proceso " de cualquiera de los lados
-    const normProc = norm(procNombre);
-    const proceso = allProcesos.find((p) => {
-      const dbN = norm(p.nombre);
-      if (dbN === normProc) return true;
-      const dbStripped = dbN.replace(/^proceso\s+/i, "").trim();
-      const searchStripped = normProc.replace(/^proceso\s+/i, "").trim();
-      return dbStripped === searchStripped || dbStripped === normProc || dbN === searchStripped;
-    });
+    // Proceso: matching ultra-flexible (tildes, separadores, romanos/arábigos, contenido parcial)
+    // Si no hay coincidencia, se auto-crea el proceso con ese nombre (igual que los pelotones)
+    let proceso = allProcesos.find((p) => matchProceso(p.nombre, procNombre));
     if (!proceso) {
-      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `Proceso "${procNombre}" no encontrado. Válidos: ${allProcesos.map((p) => p.nombre).join(", ")}` });
-      continue;
+      // Auto-crear proceso con el nombre tal como viene en el Excel
+      const [created] = await db.insert(procesosTable).values({ nombre: procNombre.trim() }).returning();
+      allProcesos.push(created);
+      proceso = created;
     }
 
     // Pelotón: buscar existente o auto-crear uno para esta combinación PNF+Proceso
