@@ -18,6 +18,7 @@ import ProcesosPage from "@/pages/admin/procesos";
 import UsuariosPage from "@/pages/admin/usuarios";
 import AsistenciasCalendario from "@/pages/admin/asistencias";
 import BloqueoPage from "@/pages/admin/bloqueo";
+import ImportarPage from "@/pages/admin/importar";
 import ColectorDashboardPage from "@/pages/colector-dashboard";
 
 const queryClient = new QueryClient({
@@ -113,6 +114,10 @@ function Router() {
 
       <Route path="/admin/bloqueo">
         {() => <ProtectedRoute><BloqueoPage /></ProtectedRoute>}
+      </Route>
+
+      <Route path="/admin/importar">
+        {() => <ProtectedRoute><ImportarPage /></ProtectedRoute>}
       </Route>
 
       <Route component={NotFound} />
