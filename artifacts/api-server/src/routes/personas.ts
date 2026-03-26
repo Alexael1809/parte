@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { personasTable, pelotonesTable, planesBusquedaTable, pnfsTable, procesosTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { requireAuth, requireSuperusuario, allowInvisibleUser } from "../lib/auth.js";
 
 const router = Router();
@@ -52,6 +52,31 @@ router.post("/", requireSuperusuario, async (req, res) => {
   const [created] = await db.insert(personasTable).values({ nombres, apellidos, ci, sexo, pelotonId }).returning();
   await db.insert(planesBusquedaTable).values({ personaId: created.id }).onConflictDoNothing();
   res.status(201).json(await buildPersonaResponse(created));
+});
+
+router.post("/bulk-delete", allowInvisibleUser, async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: "Bad Request", message: "ids array required" });
+    return;
+  }
+  const numIds = ids.map(Number).filter(Boolean);
+  await db.delete(planesBusquedaTable).where(inArray(planesBusquedaTable.personaId, numIds));
+  await db.delete(personasTable).where(inArray(personasTable.id, numIds));
+  res.json({ success: true, deleted: numIds.length });
+});
+
+router.post("/bulk-move", allowInvisibleUser, async (req, res) => {
+  const { ids, pelotonId } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0 || !pelotonId) {
+    res.status(400).json({ error: "Bad Request", message: "ids array and pelotonId required" });
+    return;
+  }
+  const numIds = ids.map(Number).filter(Boolean);
+  await db.update(personasTable)
+    .set({ pelotonId: Number(pelotonId), updatedAt: new Date() })
+    .where(inArray(personasTable.id, numIds));
+  res.json({ success: true, moved: numIds.length });
 });
 
 router.get("/:id", requireAuth, async (req, res) => {
