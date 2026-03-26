@@ -138,29 +138,45 @@ router.post("/importar", requireSuperusuario, async (req, res) => {
       continue;
     }
 
+    // PNF: exact case-insensitive match
     const pnf = allPnfs.find((p) => p.nombre.toLowerCase() === pnfNombre.toLowerCase());
     if (!pnf) {
       resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `PNF "${pnfNombre}" no encontrado en el sistema` });
       continue;
     }
 
-    const proceso = allProcesos.find((p) => p.nombre.toLowerCase() === procNombre.toLowerCase());
+    // Proceso: exact match OR flexible match stripping "Proceso " prefix from DB name
+    const proceso = allProcesos.find((p) => {
+      const dbNom = p.nombre.toLowerCase().trim();
+      const search = procNombre.toLowerCase().trim();
+      if (dbNom === search) return true;
+      const stripped = dbNom.replace(/^proceso\s+/i, "").trim();
+      return stripped === search;
+    });
     if (!proceso) {
       resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `Proceso "${procNombre}" no encontrado en el sistema` });
       continue;
     }
 
-    const pelotonesMatch = allPelotones.filter((p) => p.pnfId === pnf.id && p.procesoId === proceso.id);
+    // Pelotón: buscar existente o auto-crear uno para esta combinación PNF+Proceso
+    let pelotonesMatch = allPelotones.filter((p) => p.pnfId === pnf.id && p.procesoId === proceso.id);
+    let peloton: typeof allPelotones[number];
     if (pelotonesMatch.length === 0) {
-      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `No existe ningún pelotón para PNF "${pnfNombre}" y Proceso "${procNombre}"` });
-      continue;
+      const [created] = await db.insert(pelotonesTable).values({
+        nombre: "Pelotón 1",
+        pnfId: pnf.id,
+        procesoId: proceso.id,
+      }).returning();
+      allPelotones.push(created);
+      peloton = created;
+    } else {
+      peloton = pelotonesMatch[0];
     }
 
-    const peloton = pelotonesMatch[0];
     seenInBatch.add(cedula);
     toInsert.push({ nombres, apellidos, ci: cedula, sexo: genero, pelotonId: peloton.id });
     toInsertMeta.push({ fila: numFila, cedula, pelotonNombre: peloton.nombre });
-    resultados.push({ fila: numFila, cedula, estado: "ok", mensaje: `Asignado a ${peloton.nombre}` });
+    resultados.push({ fila: numFila, cedula, estado: "ok", mensaje: `Asignado a ${peloton.nombre} (${pnf.nombre} · ${proceso.nombre})` });
   }
 
   if (toInsert.length > 0) {
