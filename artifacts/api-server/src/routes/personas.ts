@@ -6,6 +6,12 @@ import { requireAuth, requireSuperusuario, allowInvisibleUser } from "../lib/aut
 
 const router = Router();
 
+// Normaliza texto: minúsculas + sin tildes para comparación flexible
+function norm(s: string): string {
+  return s.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 async function buildPersonaResponse(persona: typeof personasTable.$inferSelect) {
   const [peloton] = await db.select({ nombre: pelotonesTable.nombre }).from(pelotonesTable).where(eq(pelotonesTable.id, persona.pelotonId)).limit(1);
   return {
@@ -129,7 +135,10 @@ router.post("/importar", requireSuperusuario, async (req, res) => {
     const cedula     = String(raw.cedula    ?? "").trim();
     const nombres    = String(raw.nombres   ?? "").trim();
     const apellidos  = String(raw.apellidos ?? "").trim();
-    const genero     = String(raw.genero    ?? "").trim().toUpperCase();
+    // Normalizar género: aceptar M/F o MASCULINO/FEMENINO
+    const generoRaw  = String(raw.genero    ?? "").trim().toUpperCase();
+    const generoMap: Record<string, string> = { M: "M", F: "F", MASCULINO: "M", FEMENINO: "F", MALE: "M", FEMALE: "F", MASC: "M", FEM: "F" };
+    const genero     = generoMap[generoRaw] ?? generoRaw;
     const pnfNombre  = String(raw.pnf       ?? "").trim();
     const procNombre = String(raw.proceso   ?? "").trim();
 
@@ -163,23 +172,24 @@ router.post("/importar", requireSuperusuario, async (req, res) => {
       continue;
     }
 
-    // PNF: exact case-insensitive match
-    const pnf = allPnfs.find((p) => p.nombre.toLowerCase() === pnfNombre.toLowerCase());
+    // PNF: comparación sin tildes ni mayúsculas (INVESTIGACION PENAL == INVESTIGACIÓN PENAL)
+    const pnf = allPnfs.find((p) => norm(p.nombre) === norm(pnfNombre));
     if (!pnf) {
-      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `PNF "${pnfNombre}" no encontrado en el sistema` });
+      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `PNF "${pnfNombre}" no encontrado. Válidos: ${allPnfs.map((p) => p.nombre).join(", ")}` });
       continue;
     }
 
-    // Proceso: exact match OR flexible match stripping "Proceso " prefix from DB name
+    // Proceso: sin tildes, también se prueba quitando "Proceso " de cualquiera de los lados
+    const normProc = norm(procNombre);
     const proceso = allProcesos.find((p) => {
-      const dbNom = p.nombre.toLowerCase().trim();
-      const search = procNombre.toLowerCase().trim();
-      if (dbNom === search) return true;
-      const stripped = dbNom.replace(/^proceso\s+/i, "").trim();
-      return stripped === search;
+      const dbN = norm(p.nombre);
+      if (dbN === normProc) return true;
+      const dbStripped = dbN.replace(/^proceso\s+/i, "").trim();
+      const searchStripped = normProc.replace(/^proceso\s+/i, "").trim();
+      return dbStripped === searchStripped || dbStripped === normProc || dbN === searchStripped;
     });
     if (!proceso) {
-      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `Proceso "${procNombre}" no encontrado en el sistema` });
+      resultados.push({ fila: numFila, cedula, estado: "error", mensaje: `Proceso "${procNombre}" no encontrado. Válidos: ${allProcesos.map((p) => p.nombre).join(", ")}` });
       continue;
     }
 

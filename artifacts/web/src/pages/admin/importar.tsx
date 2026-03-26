@@ -109,9 +109,11 @@ function ValoresReferencia() {
             )}
           </div>
 
-          <p className="md:col-span-2 text-gray-500 text-xs mt-1">
-            El género debe ser exactamente <span className="text-white font-medium">M</span> (masculino) o <span className="text-white font-medium">F</span> (femenino). La comparación de PNF y Proceso ignora mayúsculas/minúsculas.
-          </p>
+          <div className="md:col-span-2 bg-[#243447] rounded-lg px-3 py-2 mt-1 text-xs text-gray-400 space-y-1">
+            <p>• <span className="text-white">Género:</span> acepta <span className="text-amber-300 font-mono">M</span>, <span className="text-amber-300 font-mono">F</span>, <span className="text-amber-300 font-mono">MASCULINO</span> o <span className="text-amber-300 font-mono">FEMENINO</span></p>
+            <p>• <span className="text-white">PNF y Proceso:</span> ignora mayúsculas/minúsculas y tildes (INVESTIGACION PENAL = INVESTIGACIÓN PENAL)</p>
+            <p>• <span className="text-white">Proceso:</span> puedes omitir el prefijo "Proceso " — por ejemplo <span className="text-amber-300 font-mono">I-2025</span> equivale a <span className="text-amber-300 font-mono">Proceso I-2025</span></p>
+          </div>
         </div>
       )}
     </div>
@@ -207,9 +209,28 @@ export default function ImportarPage() {
 
   const okCount = resultado?.resultados.filter((r) => r.estado === "ok").length ?? 0;
   const errCount = resultado?.resultados.filter((r) => r.estado === "error").length ?? 0;
+  const [errFilter, setErrFilter] = useState<"todos" | "ok" | "error">("todos");
   const visibleResultados = showAll
-    ? (resultado?.resultados ?? [])
-    : (resultado?.resultados ?? []).slice(0, 20);
+    ? (resultado?.resultados ?? []).filter((r) => errFilter === "todos" || r.estado === errFilter)
+    : (resultado?.resultados ?? []).filter((r) => errFilter === "todos" || r.estado === errFilter).slice(0, 30);
+
+  // Categorías de error para el resumen
+  function categorizarErrores(resultados: Resultado[]) {
+    const errs = resultados.filter((r) => r.estado === "error");
+    const cats: { label: string; count: number; color: string }[] = [];
+    const add = (label: string, color: string, test: (m: string) => boolean) => {
+      const n = errs.filter((r) => test(r.mensaje)).length;
+      if (n > 0) cats.push({ label, count: n, color });
+    };
+    add("Cédula duplicada en el archivo", "text-orange-300", (m) => m.includes("duplicada en el archivo"));
+    add("Cédula ya en base de datos", "text-yellow-300", (m) => m.includes("ya existe en la base de datos"));
+    add("PNF no encontrado", "text-red-300", (m) => m.includes("PNF"));
+    add("Proceso no encontrado", "text-red-300", (m) => m.includes("Proceso") && m.includes("no encontrado"));
+    add("Género inválido", "text-purple-300", (m) => m.toLowerCase().includes("género"));
+    add("Datos faltantes", "text-gray-300", (m) => m.includes("vacío") || m.includes("vacíos"));
+    add("Fila vacía ignorada", "text-gray-500", (m) => m.includes("vacía, ignorada"));
+    return cats;
+  }
 
   return (
     <Layout>
@@ -348,7 +369,7 @@ export default function ImportarPage() {
         {resultado && (
           <>
             {/* Resumen */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="bg-[#1B2B3D] border border-white/10 rounded-xl p-4 text-center">
                 <div className="text-2xl font-bold text-white mb-1">{resultado.total}</div>
                 <div className="text-gray-400 text-xs">Total filas</div>
@@ -363,31 +384,62 @@ export default function ImportarPage() {
               </div>
             </div>
 
-            {/* Errores de PNF/Proceso no encontrado — aviso especial */}
-            {resultado.resultados.some((r) => r.estado === "error" && (r.mensaje.includes("PNF") || r.mensaje.includes("Proceso") || r.mensaje.includes("pelotón"))) && (
-              <div className="flex gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-5">
-                <AlertCircle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-amber-300 text-sm font-medium mb-1">Algunos PNF o Procesos no coinciden</p>
-                  <p className="text-amber-200/70 text-xs">
-                    Verifica la sección "Valores válidos del sistema" y asegúrate de que el archivo Excel use exactamente los mismos nombres.
+            {/* Desglose de errores por categoría */}
+            {errCount > 0 && (() => {
+              const cats = categorizarErrores(resultado.resultados);
+              return cats.length > 0 ? (
+                <div className="bg-[#1B2B3D] border border-white/10 rounded-xl p-4 mb-4">
+                  <p className="text-white text-sm font-medium mb-3 flex items-center gap-2">
+                    <AlertCircle size={15} className="text-red-400" />
+                    Causas de los {errCount} errores:
                   </p>
+                  <div className="space-y-2">
+                    {cats.map((cat) => (
+                      <div key={cat.label} className="flex items-center gap-3">
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full bg-current ${cat.color} opacity-70`} />
+                          <span className="text-gray-300 text-sm">{cat.label}</span>
+                        </div>
+                        <span className={`text-sm font-semibold ${cat.color}`}>{cat.count}</span>
+                        <div className="w-24 bg-white/5 rounded-full h-1.5">
+                          <div
+                            className="h-1.5 rounded-full bg-red-400/60"
+                            style={{ width: `${Math.round((cat.count / errCount) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-gray-500 text-xs w-8 text-right">{Math.round((cat.count / errCount) * 100)}%</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
 
-            {/* Tabla de resultados */}
+            {/* Tabla de resultados con filtros */}
             <div className="bg-[#1B2B3D] border border-white/10 rounded-xl overflow-hidden mb-4">
-              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                <p className="text-white text-sm font-medium">Resultado por fila</p>
-                {resultado.resultados.length > 20 && (
-                  <button
-                    onClick={() => setShowAll(!showAll)}
-                    className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300"
-                  >
-                    {showAll ? <><ChevronUp size={12} /> Ver menos</> : <><ChevronDown size={12} /> Ver todos ({resultado.resultados.length})</>}
-                  </button>
-                )}
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex gap-1">
+                  {([["todos", "Todos"], ["ok", "Solo importados"], ["error", "Solo errores"]] as const).map(([val, lbl]) => (
+                    <button
+                      key={val}
+                      onClick={() => { setErrFilter(val); setShowAll(false); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${errFilter === val ? "bg-amber-500 text-[#0D1B2A] font-semibold" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+                {(() => {
+                  const total = (resultado?.resultados ?? []).filter((r) => errFilter === "todos" || r.estado === errFilter).length;
+                  return total > 30 ? (
+                    <button
+                      onClick={() => setShowAll(!showAll)}
+                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300"
+                    >
+                      {showAll ? <><ChevronUp size={12} /> Ver menos</> : <><ChevronDown size={12} /> Ver todos ({total})</>}
+                    </button>
+                  ) : null;
+                })()}
               </div>
               <div className="divide-y divide-white/5">
                 {visibleResultados.map((r) => (
