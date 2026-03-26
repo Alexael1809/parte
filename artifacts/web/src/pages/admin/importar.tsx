@@ -1,13 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
 import {
   Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle,
-  Loader2, Download, ChevronDown, ChevronUp, Info
+  Loader2, Download, ChevronDown, ChevronUp, Info, BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
@@ -24,16 +23,99 @@ interface ImportResponse {
   resultados: Resultado[];
 }
 
+interface PnfItem { id: number; nombre: string; }
+interface ProcesoItem { id: number; nombre: string; }
+
 function descargarPlantilla() {
   const ws = XLSX.utils.aoa_to_sheet([
     ["cedula", "nombres", "apellidos", "genero", "pnf", "proceso"],
-    ["12345678", "Juan Carlos", "Pérez González", "M", "Derecho Penal", "IV Proceso"],
-    ["87654321", "María Isabel", "Rodríguez López", "F", "Derecho Penal", "IV Proceso"],
+    ["12345678", "Juan Carlos", "Pérez González", "M", "Criminalistica", "Proceso 2025"],
+    ["87654321", "María Isabel", "Rodríguez López", "F", "Policial Mixto", "Proceso 1-2026"],
   ]);
   ws["!cols"] = [{ wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 8 }, { wch: 24 }, { wch: 24 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Personas");
   XLSX.writeFile(wb, "plantilla_importacion.xlsx");
+}
+
+function ValoresReferencia() {
+  const [open, setOpen] = useState(true);
+  const { data: pnfs, isLoading: loadingPnfs } = useQuery<PnfItem[]>({
+    queryKey: ["pnfs"],
+    queryFn: () => api.get<PnfItem[]>("/pnfs"),
+  });
+  const { data: procesos, isLoading: loadingProc } = useQuery<ProcesoItem[]>({
+    queryKey: ["procesos"],
+    queryFn: () => api.get<ProcesoItem[]>("/procesos"),
+  });
+
+  return (
+    <div className="bg-[#1B2B3D] border border-white/10 rounded-xl overflow-hidden mb-5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <BookOpen size={15} className="text-amber-400" />
+          <span className="text-white text-sm font-medium">Valores válidos del sistema</span>
+          <span className="text-gray-500 text-xs">(los nombres deben coincidir exactamente)</span>
+        </div>
+        {open ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 grid md:grid-cols-2 gap-4 border-t border-white/10 pt-4">
+          {/* PNFs */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              Columna <span className="text-amber-300 font-mono">pnf</span>
+            </p>
+            {loadingPnfs ? (
+              <Loader2 size={14} className="animate-spin text-gray-500" />
+            ) : pnfs && pnfs.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {pnfs.map((p) => (
+                  <div key={p.id} className="flex items-center gap-2 group">
+                    <span className="text-gray-200 text-sm font-mono bg-white/5 px-2 py-0.5 rounded text-xs">
+                      {p.nombre}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-xs italic">Sin PNFs registrados</p>
+            )}
+          </div>
+
+          {/* Procesos */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              Columna <span className="text-amber-300 font-mono">proceso</span>
+            </p>
+            {loadingProc ? (
+              <Loader2 size={14} className="animate-spin text-gray-500" />
+            ) : procesos && procesos.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {procesos.map((p) => (
+                  <div key={p.id} className="flex items-center gap-2">
+                    <span className="text-gray-200 text-sm font-mono bg-white/5 px-2 py-0.5 rounded text-xs">
+                      {p.nombre}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-xs italic">Sin procesos registrados</p>
+            )}
+          </div>
+
+          <p className="md:col-span-2 text-gray-500 text-xs mt-1">
+            El género debe ser exactamente <span className="text-white font-medium">M</span> (masculino) o <span className="text-white font-medium">F</span> (femenino). La comparación de PNF y Proceso ignora mayúsculas/minúsculas.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ImportarPage() {
@@ -162,10 +244,10 @@ export default function ImportarPage() {
               {c}
             </span>
           ))}
-          <span className="text-gray-500 text-xs ml-1">
-            · genero: <span className="text-white font-medium">M</span> o <span className="text-white font-medium">F</span>
-          </span>
         </div>
+
+        {/* Valores de referencia */}
+        <ValoresReferencia />
 
         {/* Drop zone */}
         <div
@@ -281,6 +363,19 @@ export default function ImportarPage() {
               </div>
             </div>
 
+            {/* Errores de PNF/Proceso no encontrado — aviso especial */}
+            {resultado.resultados.some((r) => r.estado === "error" && (r.mensaje.includes("PNF") || r.mensaje.includes("Proceso") || r.mensaje.includes("pelotón"))) && (
+              <div className="flex gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-5">
+                <AlertCircle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-300 text-sm font-medium mb-1">Algunos PNF o Procesos no coinciden</p>
+                  <p className="text-amber-200/70 text-xs">
+                    Verifica la sección "Valores válidos del sistema" y asegúrate de que el archivo Excel use exactamente los mismos nombres.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Tabla de resultados */}
             <div className="bg-[#1B2B3D] border border-white/10 rounded-xl overflow-hidden mb-4">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
@@ -324,7 +419,7 @@ export default function ImportarPage() {
             <div className="flex gap-2 flex-wrap">
               <Button
                 variant="outline"
-                onClick={() => { setResultado(null); setFilas([]); setFileName(null); setPreview([]); }}
+                onClick={() => { setResultado(null); setFilas([]); setFileName(null); setPreview([]); setColError(null); }}
                 className="border-white/10 text-gray-300 hover:bg-white/5 hover:text-white"
               >
                 Importar otro archivo
