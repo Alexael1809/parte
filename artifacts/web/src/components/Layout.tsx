@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Home, BarChart2, Users, Calendar, ClipboardList,
   Settings, LogOut, Menu, X, ChevronDown, ChevronRight,
-  Shield, BookOpen, UserCheck, Layers, CalendarDays, Lock, FileSpreadsheet
+  Shield, BookOpen, UserCheck, Layers, CalendarDays, Lock, FileSpreadsheet, GraduationCap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -87,6 +87,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
             { label: "Pelotones", href: "/admin/pelotones", icon: <Shield size={14} /> },
             { label: "Personas", href: "/admin/personas", icon: <Users size={14} /> },
             { label: "Importar", href: "/admin/importar", icon: <FileSpreadsheet size={14} /> },
+            { label: "PNFs", href: "/admin/pnfs", icon: <GraduationCap size={14} /> },
             { label: "Procesos", href: "/admin/procesos", icon: <Layers size={14} /> },
             { label: "Calendario", href: "/admin/asistencias", icon: <CalendarDays size={14} /> },
             { label: "Control Asistencia", href: "/admin/bloqueo", icon: <Lock size={14} /> },

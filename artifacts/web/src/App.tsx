@@ -19,6 +19,7 @@ import UsuariosPage from "@/pages/admin/usuarios";
 import AsistenciasCalendario from "@/pages/admin/asistencias";
 import BloqueoPage from "@/pages/admin/bloqueo";
 import ImportarPage from "@/pages/admin/importar";
+import PnfsPage from "@/pages/admin/pnfs";
 import ColectorDashboardPage from "@/pages/colector-dashboard";
 
 const queryClient = new QueryClient({
@@ -118,6 +119,10 @@ function Router() {
 
       <Route path="/admin/importar">
         {() => <ProtectedRoute><ImportarPage /></ProtectedRoute>}
+      </Route>
+
+      <Route path="/admin/pnfs">
+        {() => <ProtectedRoute><PnfsPage /></ProtectedRoute>}
       </Route>
 
       <Route component={NotFound} />
